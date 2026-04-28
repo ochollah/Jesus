@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Great Commission | Harvest Portal</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root { 
+            --gold: #f1c40f; --emerald: #27ae60; --dark: #0f172a; 
+            --glass: rgba(255, 255, 255, 0.1); --glass-heavy: rgba(15, 23, 42, 0.85);
+            --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        body, html { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: var(--dark); color: white; overflow-x: hidden; scroll-behavior: smooth; }
+
+        /* Parallax Hero Section */
+        .hero {
+            height: 100vh;
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1510519133417-2ad0c3f0ecc2?auto=format&fit=crop&q=80&w=2000');
+            background-attachment: fixed;
+            background-size: cover;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+        }
+
+        .hero h1 { font-family: 'Cinzel', serif; font-size: 4rem; color: var(--gold); margin-bottom: 10px; text-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .hero p { font-size: 1.2rem; font-weight: 300; letter-spacing: 2px; opacity: 0.9; }
+
+        /* Map Styling */
+        #map { height: 60vh; width: 100%; filter: grayscale(0.5) contrast(1.1) invert(0.9) hue-rotate(170deg); border-bottom: 2px solid var(--gold); }
+
+        /* Glassmorphic Container */
+        .main-container { padding: 40px 20px; max-width: 1100px; margin: -100px auto 100px; position: relative; z-index: 100; }
+        
+        .card { 
+            background: var(--glass-heavy); backdrop-filter: blur(15px); border-radius: 24px; 
+            padding: 40px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Buttons & Forms */
+        input { 
+            width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.05); color: white; font-size: 1rem; transition: var(--transition);
+        }
+        input:focus { outline: none; border-color: var(--gold); background: rgba(255,255,255,0.1); }
+
+        .btn { 
+            padding: 16px 32px; border: none; border-radius: 12px; cursor: pointer; font-weight: 800; 
+            text-transform: uppercase; letter-spacing: 1px; transition: var(--transition); display: inline-block; width: 100%;
+        }
+        .btn-gold { background: var(--gold); color: var(--dark); box-shadow: 0 10px 20px rgba(241, 196, 15, 0.3); }
+        .btn-gold:hover { transform: translateY(-3px); box-shadow: 0 15px 25px rgba(241, 196, 15, 0.4); }
+        .btn-gold:disabled { background: #555; cursor: not-allowed; transform: none; }
+
+        /* Salvation Popups */
+        .overlay-gate { position: fixed; inset: 0; background: var(--dark); z-index: 2000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        
+        .prayer-scroll { 
+            max-height: 300px; overflow-y: auto; padding: 20px; background: rgba(0,0,0,0.3); 
+            border-radius: 12px; margin: 20px 0; border-left: 4px solid var(--gold); line-height: 1.8; font-style: italic;
+        }
+
+        .prayer-scroll::-webkit-scrollbar { width: 5px; }
+        .prayer-scroll::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 10px; }
+
+        /* Modern Stats */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        .stat-item { background: rgba(255,255,255,0.03); padding: 30px; border-radius: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .stat-val { font-size: 2.5rem; font-weight: 800; color: var(--gold); display: block; }
+        .stat-lbl { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; }
+
+        /* WhatsApp Link */
+        .wa-link { 
+            background: #25D366; color: white; text-decoration: none; padding: 8px 15px; 
+            border-radius: 30px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.85rem;
+        }
+
+        .hidden { display: none; }
+        .pulse-marker { width: 20px; height: 20px; background: var(--gold); border: 3px solid white; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(241, 196, 15, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(241, 196, 15, 0); } 100% { box-shadow: 0 0 0 0 rgba(241, 196, 15, 0); } }
+    </style>
+</head>
+<body>
+
+<section id="entrance" class="hero">
+    <div style="padding: 20px;">
+        <h1 id="hero-title">Kingdom Mission</h1>
+        <p>RESCUING SOULS FOR ETERNITY</p>
+        <button class="btn btn-gold" style="width: 250px; margin-top: 30px;" onclick="startJourney()">Begin Journey</button>
+    </div>
+</section>
+
+<div id="gate-scripture" class="overlay-gate hidden">
+    <div style="max-width: 500px; text-align: center; padding: 30px;">
+        <h2 style="font-family: 'Cinzel'; color: var(--gold); font-size: 2.5rem;">Jesus is Lord</h2>
+        <p style="font-size: 1.2rem; line-height: 1.6;">"That if thou shalt confess with thy mouth the Lord Jesus, and shalt believe in thine heart that God hath raised him from the dead, thou shalt be saved."</p>
+        <small>(Romans 10:9)</small>
+        <button class="btn btn-gold" style="margin-top: 40px;" onclick="showPrayer()">I Believe</button>
+    </div>
+</div>
+
+<div id="gate-prayer" class="overlay-gate hidden">
+    <div style="max-width: 600px; text-align: center; padding: 30px;">
+        <h2 style="font-family: 'Cinzel'; color: var(--gold);">The Prayer of Salvation</h2>
+        <p>Please read this prayer slowly from your heart:</p>
+        <div class="prayer-scroll" id="prayerBox" onscroll="checkScroll()">
+            Lord Jesus, I come to You today. I acknowledge that I am a sinner in need of Your grace. 
+            I believe that You died on the cross for my sins and rose again on the third day to give me eternal life. 
+            I repent of my sins and turn away from my old ways. <br><br>
+            Right now, I open the door of my heart and invite You to come in. 
+            Be my Lord, my Savior, and my Best Friend. Wash me clean with Your precious blood. 
+            Fill me with Your Holy Spirit and lead me in the way of righteousness. <br><br>
+            I am now a child of God. Old things have passed away, and all things have become new. 
+            Thank You, Jesus, for saving me! Amen.
+        </div>
+        <p id="scroll-hint" style="color: var(--gold); font-size: 0.8rem;">(Scroll to the bottom to confirm)</p>
+        <button id="btnAmen" class="btn btn-gold" disabled onclick="showForm()">Amen, I have Prayed</button>
+    </div>
+</div>
+
+<div id="map"></div>
+
+<div class="main-container">
+    <div id="user-section" class="card">
+        <div id="form-container" class="hidden">
+            <h2 style="margin-top:0; color: var(--gold);">Register Your Soul</h2>
+            <p style="opacity: 0.7;">Your details will be shared with a regional pastor for follow-up.</p>
+            <input type="text" id="uName" placeholder="Full Name">
+            <input type="tel" id="uPhone" placeholder="WhatsApp Number (+254...)">
+            <button class="btn btn-gold" onclick="submitToKingdom()">Submit to the Book of Life</button>
+        </div>
+        <div id="wait-msg" style="text-align:center; padding: 20px;">
+            <p>Accessing the Mission Field...</p>
+        </div>
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="#" onclick="toggleAdmin(true)" style="color: #64748b; font-size: 0.8rem; text-decoration: none;">Administrator Access</a>
+        </div>
+    </div>
+
+    <div id="admin-section" class="card hidden">
+        <div id="admin-login">
+            <h2 style="color: var(--gold);">Mission Control</h2>
+            <input type="email" id="aEmail" placeholder="Secure Email">
+            <input type="password" id="aPass" placeholder="Access Key">
+            <button class="btn btn-gold" onclick="doAdminLogin()">Unlock Data</button>
+            <button class="btn" style="background: transparent; color: white;" onclick="toggleAdmin(false)">Back</button>
+        </div>
+
+        <div id="admin-dash" class="hidden">
+            <div class="stats-grid">
+                <div class="stat-item"><span class="stat-lbl">Global Harvest</span><span id="s-total" class="stat-val">0</span></div>
+                <div class="stat-item"><span class="stat-lbl">Today's Souls</span><span id="s-today" class="stat-val">0</span></div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <input type="date" id="fDate" style="margin:0;">
+                <input type="text" id="fReg" placeholder="Search Region..." style="margin:0;">
+            </div>
+
+            <canvas id="harvestChart" height="150"></canvas>
+            
+            <div style="margin-top: 30px; display: flex; gap: 10px;">
+                <button class="btn btn-gold" onclick="exportReport()" style="font-size: 0.8rem;">Export CSV</button>
+                <button class="btn btn-dark" onclick="location.reload()" style="font-size: 0.8rem; background: var(--danger);">Logout</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const firebaseConfig = {
+  apiKey: "AIzaSyARdW7FdlmJunFE9o-dPNGTqkLflozt-GQ",
+  authDomain: "king-b5942.firebaseapp.com",
+  projectId: "king-b5942",
+  storageBucket: "king-b5942.firebasestorage.app",
+  messagingSenderId: "140800959449",
+  appId: "1:140800959449:web:c20898e51cd065c091afc8",
+  measurementId: "G-GBJDY0DPG5"
+};
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let map, clusterGroup, chart;
+    let userCoords = { lat: 0, lng: 0 };
+    let harvestData = [];
+
+    window.startJourney = () => {
+        window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+        initMap();
+    };
+
+    function initMap() {
+        map = L.map('map', { zoomControl: false }).setView([0,0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        clusterGroup = L.markerClusterGroup().addTo(map);
+
+        map.locate({setView: true, maxZoom: 14, enableHighAccuracy: true});
+        map.on('locationfound', (e) => {
+            userCoords = e.latlng;
+            const pulse = L.divIcon({ className: 'pulse-marker', iconSize: [20, 20] });
+            L.marker(e.latlng, {icon: pulse}).addTo(map).bindPopup("You are here").openPopup();
+            
+            // Start the audio and sequence
+            playJesusVoice();
+        });
+    }
+
+    function playJesusVoice() {
+        let count = 0;
+        const msg = new SpeechSynthesisUtterance("Jesus is Lord");
+        msg.pitch = 0.8; msg.rate = 0.9;
+        const talk = () => {
+            if(count < 7) {
+                window.speechSynthesis.speak(msg);
+                count++;
+                msg.onend = talk;
+            } else {
+                document.getElementById('gate-scripture').classList.remove('hidden');
+            }
+        };
+        talk();
+    }
+
+    window.showPrayer = () => {
+        document.getElementById('gate-scripture').classList.add('hidden');
+        document.getElementById('gate-prayer').classList.remove('hidden');
+    };
+
+    window.checkScroll = () => {
+        const box = document.getElementById('prayerBox');
+        if (box.scrollHeight - box.scrollTop <= box.clientHeight + 2) {
+            document.getElementById('btnAmen').disabled = false;
+            document.getElementById('scroll-hint').innerHTML = "Ready to confirm.";
+        }
+    };
+
+    window.showForm = () => {
+        document.getElementById('gate-prayer').classList.add('hidden');
+        document.getElementById('wait-msg').classList.add('hidden');
+        document.getElementById('form-container').classList.remove('hidden');
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    };
+
+    window.submitToKingdom = async () => {
+        const name = document.getElementById('uName').value;
+        const phone = document.getElementById('uPhone').value;
+        if(!name || !phone) return alert("Heaven requires your identification.");
+
+        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${userCoords.lat}&lon=${userCoords.lng}`);
+        const geoData = await geoRes.json();
+        
+        await addDoc(collection(db, "souls"), {
+            name, phone, lat: userCoords.lat, lng: userCoords.lng, 
+            country: geoData?.address?.country || "Earth", 
+            timestamp: new Date().toISOString()
+        });
+
+        document.getElementById('form-container').innerHTML = `
+            <div style="text-align:center;">
+                <h1 style="color:var(--gold); font-family:Cinzel;">It is Finished</h1>
+                <p>Your name is written in the Book of Life. A pastor will contact you soon.</p>
+            </div>`;
+    };
+
+    window.toggleAdmin = (show) => {
+        document.getElementById('user-section').classList.toggle('hidden', show);
+        document.getElementById('admin-section').classList.toggle('hidden', !show);
+    };
+
+    window.doAdminLogin = async () => {
+        const email = document.getElementById('aEmail').value;
+        const pass = document.getElementById('aPass').value;
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+            document.getElementById('admin-login').classList.add('hidden');
+            document.getElementById('admin-dash').classList.remove('hidden');
+            fetchSouls();
+        } catch(e) { alert("Access Denied."); }
+    };
+
+    async function fetchSouls() {
+        const snap = await getDocs(query(collection(db, "souls"), orderBy("timestamp", "desc")));
+        harvestData = [];
+        snap.forEach(d => harvestData.push(d.data()));
+        updateDashboard();
+    }
+
+    function updateDashboard() {
+        const dFilt = document.getElementById('fDate').value;
+        const rFilt = document.getElementById('fReg').value.toLowerCase();
+        
+        const filtered = harvestData.filter(s => 
+            (dFilt ? s.timestamp.startsWith(dFilt) : true) && 
+            (rFilt ? s.country.toLowerCase().includes(rFilt) : true)
+        );
+
+        document.getElementById('s-total').innerText = harvestData.length;
+        document.getElementById('s-today').innerText = harvestData.filter(s => s.timestamp.startsWith(new Date().toISOString().split('T')[0])).length;
+
+        clusterGroup.clearLayers();
+        filtered.forEach(s => {
+            const waLink = `https://wa.me/${s.phone.replace(/\D/g,'')}?text=${encodeURIComponent('God bless you ' + s.name + '! We are reaching out from the Kingdom Mission...')}`;
+            const popup = `
+                <div style="color:var(--dark); font-family:Inter;">
+                    <b style="font-size:1.1rem;">${s.name}</b><br>
+                    <span style="opacity:0.7">${s.country}</span><br><br>
+                    <a href="${waLink}" target="_blank" class="wa-link">
+                        WhatsApp Follow-up
+                    </a>
+                </div>`;
+            clusterGroup.addLayer(L.marker([s.lat, s.lng]).bindPopup(popup));
+        });
+
+        // Update Chart
+        const regions = {};
+        filtered.forEach(s => regions[s.country] = (regions[s.country] || 0) + 1);
+        
+        if(chart) chart.destroy();
+        chart = new Chart(document.getElementById('harvestChart'), {
+            type: 'bar',
+            data: {
+                labels: Object.keys(regions),
+                datasets: [{ label: 'Souls per Nation', data: Object.values(regions), backgroundColor: '#f1c40f' }]
+            },
+            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    document.getElementById('fDate').addEventListener('change', updateDashboard);
+    document.getElementById('fReg').addEventListener('input', updateDashboard);
+
+    window.exportReport = () => {
+        let csv = "Name,Phone,Country,Date\n";
+        harvestData.forEach(s => csv += `"${s.name}","${s.phone}","${s.country}","${s.timestamp}"\n`);
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('hidden', '');
+        a.setAttribute('href', url);
+        a.setAttribute('download', 'Kingdom_Harvest_Report.csv');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
+</script>
+</body>
+</html>
