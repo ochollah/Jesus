@@ -33,7 +33,7 @@
         .main-container { padding: 40px 20px; max-width: 1100px; margin: -100px auto 100px; position: relative; z-index: 100; }
         .card { background: var(--glass-heavy); backdrop-filter: blur(20px); border-radius: 28px; padding: 40px; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 30px 60px rgba(0,0,0,0.6); }
 
-        input { width: 100%; padding: 15px; margin-bottom: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: white; font-size: 1.1rem; box-sizing: border-box; }
+        input, select { width: 100%; padding: 15px; margin-bottom: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: white; font-size: 1.1rem; box-sizing: border-box; }
         .btn { padding: 16px 32px; border: none; border-radius: 12px; cursor: pointer; font-weight: 800; text-transform: uppercase; transition: var(--transition); display: inline-block; width: 100%; }
         .btn-gold { background: var(--gold); color: var(--dark); box-shadow: 0 10px 20px rgba(241, 196, 15, 0.3); }
         .btn-danger { background: var(--danger); color: white; }
@@ -132,19 +132,16 @@
 
         <div id="admin-dash" class="hidden">
             <h2 id="dash-title" style="color: var(--gold); margin-top:0;">Kingdom Dashboard</h2>
+            
             <div id="pastor-crud" class="hidden">
                 <h3 style="color: var(--gold);">Manage Counselors</h3>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input type="hidden" id="editPastorId">
                     <input type="text" id="pName" placeholder="Pastor Name">
                     <input type="text" id="pReg" placeholder="Country">
                     <input type="email" id="pEmail" placeholder="Email">
                     <input type="tel" id="pPhone" placeholder="WhatsApp">
                 </div>
-                <div style="display: flex; gap: 10px; margin-top:10px;">
-                    <button class="btn btn-gold" onclick="savePastor()">Save Pastor</button>
-                    <button class="btn hidden" id="btnCancelP" onclick="resetPForm()">Cancel</button>
-                </div>
+                <button class="btn btn-gold" style="margin-top:10px;" onclick="savePastor()">Add Pastor</button>
                 <table class="crud-table">
                     <thead><tr><th>Name</th><th>Region</th><th>Actions</th></tr></thead>
                     <tbody id="pTableBody"></tbody>
@@ -154,6 +151,15 @@
             <div class="stats-grid">
                 <div class="stat-card"><span>Global Souls</span><span id="s-total" class="stat-val">0</span></div>
                 <div class="stat-card"><span>Today's Harvest</span><span id="s-today" class="stat-val">0</span></div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: var(--gold);">Export Records</h3>
+                <div style="display: flex; gap: 10px;">
+                    <input type="date" id="exportDate" style="margin:0;">
+                    <input type="text" id="exportRegion" placeholder="Region (Optional)" style="margin:0;">
+                    <button class="btn btn-gold" style="width: auto;" onclick="exportData()">Export CSV</button>
+                </div>
             </div>
 
             <canvas id="harvestChart" height="150"></canvas>
@@ -225,9 +231,10 @@
         document.getElementById('gate-prayer').classList.remove('hidden'); 
     };
 
+    // Windows Compatibility Fix: scrollHeight - scrollTop vs clientHeight
     window.checkScroll = () => {
         const box = document.getElementById('prayerBox');
-        if(box.scrollHeight - box.scrollTop <= box.clientHeight + 50) {
+        if(box.scrollHeight - box.scrollTop <= box.clientHeight + 10) { 
             document.getElementById('btnAmen').disabled = false;
         }
     };
@@ -254,7 +261,6 @@
                 timestamp: new Date().toISOString()
             });
 
-            // No automatic WhatsApp trigger here per instruction
             document.getElementById('form-container').classList.add('hidden');
             document.getElementById('thank-you-msg').classList.remove('hidden');
         } catch(e) { alert("Submission error."); }
@@ -269,16 +275,7 @@
         if(show) initMap();
     };
 
-    // --- FOLLOW UP LOGIC (FOR ADMIN/PASTOR ONLY) ---
-    window.bulkWhatsAppFollowUp = () => {
-        const msg = encodeURIComponent("Shalom! We rejoice with you on your salvation. A counselor is here to guide you in your new walk with Christ. God bless you!");
-        harvestData.forEach((soul, index) => {
-            setTimeout(() => {
-                window.open(`https://wa.me/${soul.phone.replace(/\D/g,'')}?text=${msg}`, '_blank');
-            }, index * 2000); // 2-second delay between tabs
-        });
-    };
-
+    // --- DASHBOARD LOGIC ---
     window.doAdminLogin = async () => {
         const email = document.getElementById('aEmail').value.toLowerCase().trim();
         const pass = document.getElementById('aPass').value;
@@ -310,17 +307,50 @@
             clusterGroup.clearLayers();
             let todayCount = 0;
             const todayStr = new Date().toISOString().split('T')[0];
+            
             snap.forEach(d => {
                 const s = d.data();
                 harvestData.push(s);
                 if(s.timestamp.startsWith(todayStr)) todayCount++;
-                clusterGroup.addLayer(L.marker([s.lat, s.lng]).bindPopup(`<b>${s.name}</b><br>${s.country}`));
+                
+                // RESTORED: Individual WhatsApp Follow-up on Map Popup
+                const msg = encodeURIComponent("Shalom! This is a follow up on your journey in Christ. How can we pray with you today?");
+                const popup = `<b>${s.name}</b><br>${s.country}<br><a href="https://wa.me/${s.phone.replace(/\D/g,'')}?text=${msg}" target="_blank" style="color:var(--gold); font-weight:bold;">WhatsApp Follow-Up</a>`;
+                clusterGroup.addLayer(L.marker([s.lat, s.lng]).bindPopup(popup));
             });
+            
             document.getElementById('s-total').innerText = harvestData.length;
             document.getElementById('s-today').innerText = todayCount;
             updateChart();
         });
     }
+
+    // --- EXPORT PER DAY PER REGION ---
+    window.exportData = () => {
+        const dateFilter = document.getElementById('exportDate').value;
+        const regionFilter = document.getElementById('exportRegion').value.toLowerCase();
+        
+        let filtered = harvestData;
+        if(dateFilter) filtered = filtered.filter(s => s.timestamp.startsWith(dateFilter));
+        if(regionFilter) filtered = filtered.filter(s => s.country.toLowerCase().includes(regionFilter));
+        
+        if(filtered.length === 0) return alert("No records found for this filter.");
+
+        let csv = "Name,Phone,Region,Date\n";
+        filtered.forEach(s => {
+            csv += `"${s.name}","${s.phone}","${s.country}","${s.timestamp}"\n`;
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('hidden', '');
+        a.setAttribute('href', url);
+        a.setAttribute('download', `Harvest_Report_${dateFilter || 'All'}.csv`);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
 
     function updateChart() {
         const regions = {};
@@ -359,6 +389,15 @@
     };
     
     window.deletePastor = async (id) => { if(confirm("Delete?")) await deleteDoc(doc(db, "pastors", id)); };
+
+    window.bulkWhatsAppFollowUp = () => {
+        const msg = encodeURIComponent("Shalom! We rejoice with you on your salvation. God bless you!");
+        harvestData.forEach((soul, index) => {
+            setTimeout(() => {
+                window.open(`https://wa.me/${soul.phone.replace(/\D/g,'')}?text=${msg}`, '_blank');
+            }, index * 2000);
+        });
+    };
 </script>
 </body>
 </html>
