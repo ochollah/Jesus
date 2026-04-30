@@ -14,14 +14,13 @@
     <style>
         :root { 
             --gold: #f1c40f; --emerald: #27ae60; --dark: #0f172a; 
-            --glass: rgba(255, 255, 255, 0.1); --glass-heavy: rgba(15, 23, 42, 0.95);
+            --glass-heavy: rgba(15, 23, 42, 0.95);
             --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             --danger: #e74c3c;
         }
 
         body, html { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: var(--dark); color: white; overflow-x: hidden; scroll-behavior: smooth; }
 
-        /* Hero & Navigation */
         .hero {
             height: 100vh;
             background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1438232992991-995b7058bbb3?q=80&w=2000');
@@ -30,27 +29,35 @@
         }
         .hero h1 { font-family: 'Cinzel', serif; font-size: clamp(2rem, 8vw, 4rem); color: var(--gold); margin-bottom: 10px; }
 
-        /* Map & Layout */
         #map { height: 65vh; width: 100%; filter: grayscale(0.6) contrast(1.2) invert(0.9) hue-rotate(170deg); border-bottom: 3px solid var(--gold); }
         .main-container { padding: 40px 20px; max-width: 1100px; margin: -100px auto 100px; position: relative; z-index: 100; }
         .card { background: var(--glass-heavy); backdrop-filter: blur(20px); border-radius: 28px; padding: 40px; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 30px 60px rgba(0,0,0,0.6); }
 
-        /* Forms & Buttons */
-        input { width: 100%; padding: 15px; margin-bottom: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: white; font-size: 1rem; box-sizing: border-box; }
+        input { width: 100%; padding: 15px; margin-bottom: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: white; font-size: 1.1rem; box-sizing: border-box; }
         .btn { padding: 16px 32px; border: none; border-radius: 12px; cursor: pointer; font-weight: 800; text-transform: uppercase; transition: var(--transition); display: inline-block; width: 100%; }
         .btn-gold { background: var(--gold); color: var(--dark); box-shadow: 0 10px 20px rgba(241, 196, 15, 0.3); }
         .btn-danger { background: var(--danger); color: white; }
 
-        /* Table & Management */
         .crud-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 0.85rem; background: rgba(0,0,0,0.2); border-radius: 15px; overflow: hidden; }
         .crud-table th, .crud-table td { padding: 15px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .crud-table th { background: rgba(255,255,255,0.05); color: var(--gold); }
 
-        /* Gates */
         .overlay-gate { position: fixed; inset: 0; background: var(--dark); z-index: 2000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
-        .prayer-scroll { max-height: 250px; overflow-y: auto; padding: 25px; background: rgba(0,0,0,0.4); border-radius: 15px; margin: 20px 0; border-left: 4px solid var(--gold); line-height: 1.8; font-style: italic; }
+        
+        .prayer-scroll { 
+            max-height: 400px; 
+            overflow-y: auto; 
+            padding: 30px; 
+            background: rgba(0,0,0,0.5); 
+            border-radius: 20px; 
+            margin: 20px 0; 
+            border-left: 6px solid var(--gold); 
+            line-height: 1.6; 
+            font-style: italic;
+            font-size: 1.8rem; 
+            font-weight: 300;
+        }
 
-        /* Stats */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
         .stat-card { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 18px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
         .stat-val { font-size: 2rem; color: var(--gold); font-weight: 800; display: block; }
@@ -71,19 +78,17 @@
 </section>
 
 <div id="gate-scripture" class="overlay-gate hidden">
-    <div style="max-width: 500px; text-align: center;">
-        <h2 style="font-family: 'Cinzel'; color: var(--gold); font-size: 2.5rem;">Jesus is Lord</h2>
-        <p style="font-size: 1.2rem;">"For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life."</p>
-        <small>(John 3:16)</small>
-<p  style="font-size: 1.2rem;">"If you declare with your mouth, “Jesus is Lord,” and believe in your heart that God raised him from the dead, you will be saved."</p>
-        <small>(Romans 10:9)</small>
-        <button class="btn btn-gold" style="margin-top: 40px;" onclick="showPrayer()">I Believe</button>
+    <div style="max-width: 700px; text-align: center;">
+        <h2 style="font-family: 'Cinzel'; color: var(--gold); font-size: 3rem;">Jesus is Lord</h2>
+        <p style="font-size: 1.5rem; margin-bottom: 20px;">"For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life." <br><small>(John 3:16)</small></p>
+        <p style="font-size: 1.5rem;">"If you declare with your mouth, “Jesus is Lord,” and believe in your heart that God raised him from the dead, you will be saved." <br><small>(Romans 10:9)</small></p>
+        <button class="btn btn-gold" style="margin-top: 40px; font-size: 1.5rem;" onclick="showPrayer()">I Believe</button>
     </div>
 </div>
 
 <div id="gate-prayer" class="overlay-gate hidden">
-    <div style="max-width: 600px; text-align: center;">
-        <h2 style="font-family: 'Cinzel'; color: var(--gold);">The Prayer of Salvation</h2>
+    <div style="max-width: 900px; text-align: center;">
+        <h2 style="font-family: 'Cinzel'; color: var(--gold); font-size: 2.5rem;">The Prayer of Salvation</h2>
         <div class="prayer-scroll" id="prayerBox" onscroll="checkScroll()">
             Lord Jesus, I come to You today. I acknowledge that I am a sinner. I believe You died for my sins and rose again on the third day. 
             I repent and turn from my old ways. Wash me clean with Your precious blood. Fill me with Your Holy Spirit. 
@@ -100,8 +105,13 @@
         <div id="form-container" class="hidden">
             <h2 style="color: var(--gold); margin-top:0;">Register Your Soul</h2>
             <input type="text" id="uName" placeholder="Full Name">
-            <input type="tel" id="uPhone" placeholder="WhatsApp (e.g. +254...)">
+            <input type="tel" id="uPhone" placeholder="WhatsApp Number">
             <button class="btn btn-gold" onclick="submitToKingdom()">Submit to the Book of Life</button>
+        </div>
+        <div id="thank-you-msg" class="hidden" style="text-align:center;">
+            <h2 style="color: var(--gold);">Hallelujah!</h2>
+            <p style="font-size: 1.3rem;">Your name has been written in the Book of Life.</p>
+            <button class="btn btn-gold" style="width: auto; margin-top: 20px;" onclick="resetToHome()">OK</button>
         </div>
         <div id="wait-msg" style="text-align:center;">
             <p>Waiting for the move of the Spirit...</p>
@@ -122,18 +132,17 @@
 
         <div id="admin-dash" class="hidden">
             <h2 id="dash-title" style="color: var(--gold); margin-top:0;">Kingdom Dashboard</h2>
-            
             <div id="pastor-crud" class="hidden">
                 <h3 style="color: var(--gold);">Manage Counselors</h3>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <input type="hidden" id="editPastorId">
                     <input type="text" id="pName" placeholder="Pastor Name">
-                    <input type="text" id="pReg" placeholder="Assigned Country">
-                    <input type="email" id="pEmail" placeholder="Login Email">
+                    <input type="text" id="pReg" placeholder="Country">
+                    <input type="email" id="pEmail" placeholder="Email">
                     <input type="tel" id="pPhone" placeholder="WhatsApp">
                 </div>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-gold" id="btnSaveP" onclick="savePastor()">Save Pastor</button>
+                <div style="display: flex; gap: 10px; margin-top:10px;">
+                    <button class="btn btn-gold" onclick="savePastor()">Save Pastor</button>
                     <button class="btn hidden" id="btnCancelP" onclick="resetPForm()">Cancel</button>
                 </div>
                 <table class="crud-table">
@@ -143,22 +152,17 @@
             </div>
 
             <div class="stats-grid">
-                <div class="stat-card"><span class="stat-lbl">Global Souls</span><span id="s-total" class="stat-val">0</span></div>
-                <div class="stat-card"><span class="stat-lbl">Today's Harvest</span><span id="s-today" class="stat-val">0</span></div>
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <input type="date" id="fDate" style="margin:0;">
-                <input type="text" id="fSearch" placeholder="Search Region..." style="margin:0;">
-                <button class="btn btn-gold" style="width: auto;" onclick="exportFiltered()">Export CSV</button>
+                <div class="stat-card"><span>Global Souls</span><span id="s-total" class="stat-val">0</span></div>
+                <div class="stat-card"><span>Today's Harvest</span><span id="s-today" class="stat-val">0</span></div>
             </div>
 
             <canvas id="harvestChart" height="150"></canvas>
             
-            <div style="margin-top: 30px;">
-                <button class="btn btn-gold" onclick="bulkFollowUp()">Bulk WhatsApp Follow-Up</button>
-                <button class="btn btn-danger" style="margin-top: 15px;" onclick="location.reload()">Logout</button>
+            <div style="margin-top:20px;">
+                <button class="btn btn-gold" onclick="bulkWhatsAppFollowUp()">Bulk WhatsApp Follow-Up</button>
             </div>
+            
+            <button class="btn btn-danger" style="margin-top: 30px;" onclick="location.reload()">Logout</button>
         </div>
     </div>
 </div>
@@ -186,7 +190,6 @@
 
     let map, clusterGroup, chart, harvestData = [], currentRole = 'admin', assignedRegion = null, isUserPath = false;
 
-    // --- JOURNEY & VOICE ---
     window.startJourney = () => {
         isUserPath = true;
         window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
@@ -198,84 +201,84 @@
         map = L.map('map', { zoomControl: false }).setView([0,0], 2);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         clusterGroup = L.markerClusterGroup().addTo(map);
-
         map.locate({setView: true, maxZoom: 12});
         map.on('locationfound', (e) => {
             const pulse = L.divIcon({ className: 'pulse-marker', iconSize: [18, 18] });
             L.marker(e.latlng, {icon: pulse}).addTo(map);
-            
-            // Only play voice if path is for a Soul
-            if (isUserPath) { playScriptureSequence(); }
-            else { document.getElementById('wait-msg').innerHTML = "Map Activated."; }
+            if (isUserPath) playScriptureSequence();
         });
     }
 
     function playScriptureSequence() {
         let count = 0;
         const msg = new SpeechSynthesisUtterance("Jesus is Lord");
-        msg.pitch = 0.9; msg.rate = 0.85;
         msg.onend = () => {
             count++;
             if(count < 7) window.speechSynthesis.speak(msg);
-            else { document.getElementById('gate-scripture').classList.remove('hidden'); }
+            else document.getElementById('gate-scripture').classList.remove('hidden');
         };
         window.speechSynthesis.speak(msg);
     }
 
-    // --- PASTOR CRUD ---
-    window.savePastor = async () => {
-        const id = document.getElementById('editPastorId').value;
-        const data = {
-            name: document.getElementById('pName').value,
-            region: document.getElementById('pReg').value,
-            email: document.getElementById('pEmail').value.toLowerCase().trim(),
-            phone: document.getElementById('pPhone').value
-        };
+    window.showPrayer = () => { 
+        document.getElementById('gate-scripture').classList.add('hidden'); 
+        document.getElementById('gate-prayer').classList.remove('hidden'); 
+    };
+
+    window.checkScroll = () => {
+        const box = document.getElementById('prayerBox');
+        if(box.scrollHeight - box.scrollTop <= box.clientHeight + 50) {
+            document.getElementById('btnAmen').disabled = false;
+        }
+    };
+
+    window.showForm = () => {
+        document.getElementById('gate-prayer').classList.add('hidden');
+        document.getElementById('wait-msg').classList.add('hidden');
+        document.getElementById('form-container').classList.remove('hidden');
+    };
+
+    window.submitToKingdom = async () => {
+        const name = document.getElementById('uName').value;
+        const phone = document.getElementById('uPhone').value;
+        if(!name || !phone) return alert("Required");
+        
         try {
-            if(id) await updateDoc(doc(db, "pastors", id), data);
-            else await addDoc(collection(db, "pastors"), data);
+            const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${map.getCenter().lat}&lon=${map.getCenter().lng}`);
+            const g = await geoRes.json();
+            const country = g.address.country || "Unknown";
             
-            // WhatsApp Notify Pastor
-            const text = encodeURIComponent(`Shalom Pastor ${data.name}. You have been assigned as the counselor for ${data.region}. Login: ${data.email}`);
-            window.open(`https://wa.me/${data.phone.replace(/\D/g,'')}?text=${text}`);
-            resetPForm();
-        } catch(e) { alert("Error saving pastor."); }
-    };
-
-    window.editPastor = (id, name, reg, email, phone) => {
-        document.getElementById('editPastorId').value = id;
-        document.getElementById('pName').value = name;
-        document.getElementById('pReg').value = reg;
-        document.getElementById('pEmail').value = email;
-        document.getElementById('pPhone').value = phone;
-        document.getElementById('btnCancelP').classList.remove('hidden');
-    };
-
-    window.deletePastor = async (id) => {
-        if(confirm("Delete counselor?")) await deleteDoc(doc(db, "pastors", id));
-    };
-
-    window.resetPForm = () => {
-        document.getElementById('editPastorId').value = "";
-        document.getElementById('pName').value = ""; document.getElementById('pReg').value = "";
-        document.getElementById('pEmail').value = ""; document.getElementById('pPhone').value = "";
-        document.getElementById('btnCancelP').classList.add('hidden');
-    };
-
-    function listenPastors() {
-        onSnapshot(collection(db, "pastors"), (snap) => {
-            const tbody = document.getElementById('pTableBody');
-            tbody.innerHTML = "";
-            snap.forEach(d => {
-                const p = d.data();
-                tbody.innerHTML += `<tr><td>${p.name}</td><td>${p.region}</td>
-                    <td><button onclick="editPastor('${d.id}','${p.name}','${p.region}','${p.email}','${p.phone}')">Edit</button>
-                    <button class="btn-danger" onclick="deletePastor('${d.id}')">X</button></td></tr>`;
+            await addDoc(collection(db, "souls"), {
+                name, phone, lat: map.getCenter().lat, lng: map.getCenter().lng,
+                country: country,
+                timestamp: new Date().toISOString()
             });
-        });
-    }
 
-    // --- DASHBOARD & ANALYTICS ---
+            // No automatic WhatsApp trigger here per instruction
+            document.getElementById('form-container').classList.add('hidden');
+            document.getElementById('thank-you-msg').classList.remove('hidden');
+        } catch(e) { alert("Submission error."); }
+    };
+
+    window.resetToHome = () => { window.location.reload(); };
+
+    window.toggleAdmin = (show) => {
+        isUserPath = !show;
+        document.getElementById('user-section').classList.toggle('hidden', show);
+        document.getElementById('admin-section').classList.toggle('hidden', !show);
+        if(show) initMap();
+    };
+
+    // --- FOLLOW UP LOGIC (FOR ADMIN/PASTOR ONLY) ---
+    window.bulkWhatsAppFollowUp = () => {
+        const msg = encodeURIComponent("Shalom! We rejoice with you on your salvation. A counselor is here to guide you in your new walk with Christ. God bless you!");
+        harvestData.forEach((soul, index) => {
+            setTimeout(() => {
+                window.open(`https://wa.me/${soul.phone.replace(/\D/g,'')}?text=${msg}`, '_blank');
+            }, index * 2000); // 2-second delay between tabs
+        });
+    };
+
     window.doAdminLogin = async () => {
         const email = document.getElementById('aEmail').value.toLowerCase().trim();
         const pass = document.getElementById('aPass').value;
@@ -305,18 +308,14 @@
         onSnapshot(q, (snap) => {
             harvestData = [];
             clusterGroup.clearLayers();
-            const todayStr = new Date().toISOString().split('T')[0];
             let todayCount = 0;
-
+            const todayStr = new Date().toISOString().split('T')[0];
             snap.forEach(d => {
                 const s = d.data();
                 harvestData.push(s);
                 if(s.timestamp.startsWith(todayStr)) todayCount++;
-                
-                const popup = `<b>${s.name}</b><br>${s.country}<br><a href="https://wa.me/${s.phone.replace(/\D/g,'')}" target="_blank">WhatsApp Followup</a>`;
-                clusterGroup.addLayer(L.marker([s.lat, s.lng]).bindPopup(popup));
+                clusterGroup.addLayer(L.marker([s.lat, s.lng]).bindPopup(`<b>${s.name}</b><br>${s.country}`));
             });
-
             document.getElementById('s-total').innerText = harvestData.length;
             document.getElementById('s-today').innerText = todayCount;
             updateChart();
@@ -331,66 +330,35 @@
             type: 'bar',
             data: {
                 labels: Object.keys(regions),
-                datasets: [{ label: 'Souls per Region', data: Object.values(regions), backgroundColor: '#f1c40f' }]
-            },
-            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: "#fff" } } } }
+                datasets: [{ label: 'Souls', data: Object.values(regions), backgroundColor: '#f1c40f' }]
+            }
         });
     }
 
-    // --- BULK & EXPORT ---
-    window.bulkFollowUp = () => {
-        const msg = encodeURIComponent("Grace and peace to you! We are following up on your salvation prayer today. How are you doing in your new journey with Christ?");
-        harvestData.forEach((s, i) => {
-            setTimeout(() => {
-                window.open(`https://wa.me/${s.phone.replace(/\D/g,'')}?text=${msg}`, '_blank');
-            }, i * 2000); // 2-second delay between tabs to avoid browser blocking
+    function listenPastors() {
+        onSnapshot(collection(db, "pastors"), (snap) => {
+            const tbody = document.getElementById('pTableBody');
+            tbody.innerHTML = "";
+            snap.forEach(d => {
+                const p = d.data();
+                tbody.innerHTML += `<tr><td>${p.name}</td><td>${p.region}</td>
+                <td><button class="btn-danger" onclick="deletePastor('${d.id}')">X</button></td></tr>`;
+            });
         });
-    };
+    }
 
-    window.exportFiltered = () => {
-        const dFilt = document.getElementById('fDate').value;
-        const sFilt = document.getElementById('fSearch').value.toLowerCase();
-        
-        let csv = "Name,Phone,Region,Date\n";
-        harvestData.filter(s => 
-            (dFilt ? s.timestamp.startsWith(dFilt) : true) && 
-            (sFilt ? s.country.toLowerCase().includes(sFilt) : true)
-        ).forEach(s => csv += `"${s.name}","${s.phone}","${s.country}","${s.timestamp}"\n`);
-        
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `Harvest_Export_${dFilt || 'All'}.csv`;
-        a.click();
+    window.savePastor = async () => {
+        const data = {
+            name: document.getElementById('pName').value,
+            region: document.getElementById('pReg').value,
+            email: document.getElementById('pEmail').value.toLowerCase().trim(),
+            phone: document.getElementById('pPhone').value
+        };
+        await addDoc(collection(db, "pastors"), data);
+        alert("Pastor Saved");
     };
-
-    // --- USER ACTIONS ---
-    window.toggleAdmin = (show) => {
-        isUserPath = !show;
-        document.getElementById('user-section').classList.toggle('hidden', show);
-        document.getElementById('admin-section').classList.toggle('hidden', !show);
-        if(show) initMap();
-    };
-
-    window.showPrayer = () => { document.getElementById('gate-scripture').classList.add('hidden'); document.getElementById('gate-prayer').classList.remove('hidden'); };
-    window.checkScroll = () => { if(prayerBox.scrollHeight - prayerBox.scrollTop <= prayerBox.clientHeight + 2) btnAmen.disabled = false; };
-    window.showForm = () => { document.getElementById('gate-prayer').classList.add('hidden'); document.getElementById('wait-msg').classList.add('hidden'); document.getElementById('form-container').classList.remove('hidden'); };
     
-    window.submitToKingdom = async () => {
-        const name = document.getElementById('uName').value;
-        const phone = document.getElementById('uPhone').value;
-        if(!name || !phone) return alert("Required");
-        
-        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${map.getCenter().lat}&lon=${map.getCenter().lng}`);
-        const g = await geoRes.json();
-        
-        await addDoc(collection(db, "souls"), {
-            name, phone, lat: map.getCenter().lat, lng: map.getCenter().lng,
-            country: g.address.country || "Unknown",
-            timestamp: new Date().toISOString()
-        });
-        document.getElementById('form-container').innerHTML = `<h2 style="color:var(--gold);">Saved!</h2><p>Welcome to the Kingdom.</p>`;
-    };
+    window.deletePastor = async (id) => { if(confirm("Delete?")) await deleteDoc(doc(db, "pastors", id)); };
 </script>
 </body>
 </html>
