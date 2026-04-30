@@ -31,11 +31,12 @@
 
         #map { height: 65vh; width: 100%; filter: grayscale(0.6) contrast(1.2) invert(0.9) hue-rotate(170deg); border-bottom: 3px solid var(--gold); }
         .main-container { padding: 40px 20px; max-width: 1100px; margin: -100px auto 100px; position: relative; z-index: 100; }
-        .card { background: var(--glass-heavy); backdrop-filter: blur(20px); border-radius: 28px; padding: 40px; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 30px 60px rgba(0,0,0,0.6); }
+        .card { background: var(--glass-heavy); backdrop-filter: blur(20px); border-radius: 28px; padding: clamp(20px, 5vw, 40px); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 30px 60px rgba(0,0,0,0.6); }
 
         input, select { width: 100%; padding: 15px; margin-bottom: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: white; font-size: 1.1rem; box-sizing: border-box; }
         .btn { padding: 16px 32px; border: none; border-radius: 12px; cursor: pointer; font-weight: 800; text-transform: uppercase; transition: var(--transition); display: inline-block; width: 100%; }
         .btn-gold { background: var(--gold); color: var(--dark); box-shadow: 0 10px 20px rgba(241, 196, 15, 0.3); }
+        .btn-gold:disabled { background: #334155; color: #64748b; cursor: not-allowed; opacity: 0.6; }
         .btn-danger { background: var(--danger); color: white; }
 
         .crud-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 0.85rem; background: rgba(0,0,0,0.2); border-radius: 15px; overflow: hidden; }
@@ -45,18 +46,14 @@
         .overlay-gate { position: fixed; inset: 0; background: var(--dark); z-index: 2000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
         
         .prayer-scroll { 
-            max-height: 400px; 
-            overflow-y: auto; 
-            padding: 30px; 
-            background: rgba(0,0,0,0.5); 
-            border-radius: 20px; 
-            margin: 20px 0; 
-            border-left: 6px solid var(--gold); 
-            line-height: 1.6; 
-            font-style: italic;
-            font-size: 1.8rem; 
-            font-weight: 300;
+            width: 100%; background: rgba(0,0,0,0.5); border-radius: 20px; 
+            padding: clamp(20px, 4vw, 40px); margin: 20px 0; 
+            border-left: 8px solid var(--gold); line-height: 1.5; 
+            font-size: clamp(1.2rem, 4vw, 2.1rem); text-align: left;
         }
+
+        .meter-wrap { width: 100%; height: 14px; background: rgba(255,255,255,0.05); border-radius: 20px; margin: 15px 0; overflow: hidden; }
+        #voiceBar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--gold), var(--emerald)); transition: width 0.4s ease; }
 
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
         .stat-card { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 18px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
@@ -78,7 +75,7 @@
 </section>
 
 <div id="gate-scripture" class="overlay-gate hidden">
-    <div style="max-width: 700px; text-align: center;">
+    <div style="max-width: 800px; text-align: center;">
         <h2 style="font-family: 'Cinzel'; color: var(--gold); font-size: 3rem;">Jesus is Lord</h2>
         <p style="font-size: 1.5rem; margin-bottom: 20px;">"For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life." <br><small>(John 3:16)</small></p>
         <p style="font-size: 1.5rem;">"If you declare with your mouth, “Jesus is Lord,” and believe in your heart that God raised him from the dead, you will be saved." <br><small>(Romans 10:9)</small></p>
@@ -87,13 +84,15 @@
 </div>
 
 <div id="gate-prayer" class="overlay-gate hidden">
-    <div style="max-width: 900px; text-align: center;">
+    <div style="max-width: 900px; text-align: center; width: 100%;">
         <h2 style="font-family: 'Cinzel'; color: var(--gold); font-size: 2.5rem;">The Prayer of Salvation</h2>
-        <div class="prayer-scroll" id="prayerBox" onscroll="checkScroll()">
+        <div class="meter-wrap"><div id="voiceBar"></div></div>
+        <div class="prayer-scroll" id="prayerText">
             Lord Jesus, I come to You today. I acknowledge that I am a sinner. I believe You died for my sins and rose again on the third day. 
             I repent and turn from my old ways. Wash me clean with Your precious blood. Fill me with Your Holy Spirit. 
             From today, You are my Lord and Savior. I am now a child of God. Thank You Jesus for saving me! Amen.
         </div>
+        <div id="vStatus" style="color: var(--gold); margin-bottom: 15px; font-style: italic;">Listening for your voice...</div>
         <button id="btnAmen" class="btn btn-gold" disabled onclick="showForm()">Amen, I have Prayed</button>
     </div>
 </div>
@@ -113,9 +112,7 @@
             <p style="font-size: 1.3rem;">Your name has been written in the Book of Life.</p>
             <button class="btn btn-gold" style="width: auto; margin-top: 20px;" onclick="resetToHome()">OK</button>
         </div>
-        <div id="wait-msg" style="text-align:center;">
-            <p>Waiting for the move of the Spirit...</p>
-        </div>
+        <div id="wait-msg" style="text-align:center;"><p>Waiting for the move of the Spirit...</p></div>
         <div style="text-align: center; margin-top: 30px;">
             <a href="#" onclick="toggleAdmin(true)" style="color: #64748b; font-size: 0.8rem; text-decoration: none;">Administrator Access</a>
         </div>
@@ -132,20 +129,14 @@
 
         <div id="admin-dash" class="hidden">
             <h2 id="dash-title" style="color: var(--gold); margin-top:0;">Kingdom Dashboard</h2>
-            
             <div id="pastor-crud" class="hidden">
                 <h3 style="color: var(--gold);">Manage Counselors</h3>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input type="text" id="pName" placeholder="Pastor Name">
-                    <input type="text" id="pReg" placeholder="Country">
-                    <input type="email" id="pEmail" placeholder="Email">
-                    <input type="tel" id="pPhone" placeholder="WhatsApp">
+                    <input type="text" id="pName" placeholder="Pastor Name"><input type="text" id="pReg" placeholder="Country">
+                    <input type="email" id="pEmail" placeholder="Email"><input type="tel" id="pPhone" placeholder="WhatsApp">
                 </div>
                 <button class="btn btn-gold" style="margin-top:10px;" onclick="savePastor()">Add Pastor</button>
-                <table class="crud-table">
-                    <thead><tr><th>Name</th><th>Region</th><th>Actions</th></tr></thead>
-                    <tbody id="pTableBody"></tbody>
-                </table>
+                <table class="crud-table"><thead><tr><th>Name</th><th>Region</th><th>Actions</th></tr></thead><tbody id="pTableBody"></tbody></table>
             </div>
 
             <div class="stats-grid">
@@ -156,18 +147,12 @@
             <div style="margin-bottom: 20px;">
                 <h3 style="color: var(--gold);">Export Records</h3>
                 <div style="display: flex; gap: 10px;">
-                    <input type="date" id="exportDate" style="margin:0;">
-                    <input type="text" id="exportRegion" placeholder="Region (Optional)" style="margin:0;">
+                    <input type="date" id="exportDate" style="margin:0;"><input type="text" id="exportRegion" placeholder="Region" style="margin:0;">
                     <button class="btn btn-gold" style="width: auto;" onclick="exportData()">Export CSV</button>
                 </div>
             </div>
-
             <canvas id="harvestChart" height="150"></canvas>
-            
-            <div style="margin-top:20px;">
-                <button class="btn btn-gold" onclick="bulkWhatsAppFollowUp()">Bulk WhatsApp Follow-Up</button>
-            </div>
-            
+            <button class="btn btn-gold" style="margin-top:20px;" onclick="bulkWhatsAppFollowUp()">Bulk WhatsApp Follow-Up</button>
             <button class="btn btn-danger" style="margin-top: 30px;" onclick="location.reload()">Logout</button>
         </div>
     </div>
@@ -178,29 +163,21 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, deleteDoc, doc, getDocs, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
-        apiKey: "AIzaSyARdW7FdlmJunFE9o-dPNGTqkLflozt-GQ",
-        authDomain: "king-b5942.firebaseapp.com",
-        projectId: "king-b5942",
-        storageBucket: "king-b5942.firebasestorage.app",
-        messagingSenderId: "140800959449",
-        appId: "1:140800959449:web:c20898e51cd065c091afc8"
+        apiKey: "AIzaSyARdW7FdlmJunFE9o-dPNGTqkLflozt-GQ", authDomain: "king-b5942.firebaseapp.com",
+        projectId: "king-b5942", storageBucket: "king-b5942.firebasestorage.app",
+        messagingSenderId: "140800959449", appId: "1:140800959449:web:c20898e51cd065c091afc8"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
+    let map, clusterGroup, chart, recognition, masterWordSet = new Set(), isUserPath = false, harvestData = [], currentRole = 'admin', assignedRegion = null;
 
-    let map, clusterGroup, chart, harvestData = [], currentRole = 'admin', assignedRegion = null, isUserPath = false;
-
-    window.startJourney = () => {
-        isUserPath = true;
-        window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
-        initMap();
-    };
+    window.startJourney = () => { isUserPath = true; window.scrollTo({ top: window.innerHeight, behavior: 'smooth' }); initMap(); };
 
     function initMap() {
         if (map) return;
@@ -218,186 +195,91 @@
     function playScriptureSequence() {
         let count = 0;
         const msg = new SpeechSynthesisUtterance("Jesus is Lord");
-        msg.onend = () => {
-            count++;
-            if(count < 7) window.speechSynthesis.speak(msg);
-            else document.getElementById('gate-scripture').classList.remove('hidden');
-        };
+        msg.onend = () => { count++; if(count < 7) window.speechSynthesis.speak(msg); else document.getElementById('gate-scripture').classList.remove('hidden'); };
         window.speechSynthesis.speak(msg);
     }
 
-    window.showPrayer = () => { 
+    window.showPrayer = async () => { 
+        try { await navigator.mediaDevices.getUserMedia({ audio: true }); } catch(e) {}
         document.getElementById('gate-scripture').classList.add('hidden'); 
-        document.getElementById('gate-prayer').classList.remove('hidden'); 
+        document.getElementById('gate-prayer').classList.remove('hidden');
+        startVoiceEngine();
     };
 
-    // Windows Compatibility Fix: scrollHeight - scrollTop vs clientHeight
-    window.checkScroll = () => {
-        const box = document.getElementById('prayerBox');
-        if(box.scrollHeight - box.scrollTop <= box.clientHeight + 10) { 
-            document.getElementById('btnAmen').disabled = false;
-        }
-    };
+    function startVoiceEngine() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if(!SpeechRecognition) return document.getElementById('btnAmen').disabled = false;
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        const words = document.getElementById('prayerText').innerText.toLowerCase().split(/\W+/).filter(w => w.length > 2);
+        recognition.onresult = (event) => {
+            let t = ""; for (let i = event.resultIndex; i < event.results.length; ++i) t += event.results[i][0].transcript.toLowerCase();
+            document.getElementById('vStatus').innerText = t;
+            words.forEach(w => { if(t.includes(w)) masterWordSet.add(w); });
+            const p = Math.round((masterWordSet.size / words.length) * 100);
+            document.getElementById('voiceBar').style.width = p + "%";
+            if (p >= 75 || t.includes("amen")) document.getElementById('btnAmen').disabled = false;
+        };
+        recognition.onend = () => { if(document.getElementById('btnAmen').disabled) recognition.start(); };
+        recognition.start();
+    }
 
-    window.showForm = () => {
-        document.getElementById('gate-prayer').classList.add('hidden');
-        document.getElementById('wait-msg').classList.add('hidden');
-        document.getElementById('form-container').classList.remove('hidden');
-    };
+    window.showForm = () => { if(recognition) recognition.stop(); document.getElementById('gate-prayer').classList.add('hidden'); document.getElementById('wait-msg').classList.add('hidden'); document.getElementById('form-container').classList.remove('hidden'); };
 
     window.submitToKingdom = async () => {
-        const name = document.getElementById('uName').value;
-        const phone = document.getElementById('uPhone').value;
-        if(!name || !phone) return alert("Required");
-        
-        try {
-            const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${map.getCenter().lat}&lon=${map.getCenter().lng}`);
-            const g = await geoRes.json();
-            const country = g.address.country || "Unknown";
-            
-            await addDoc(collection(db, "souls"), {
-                name, phone, lat: map.getCenter().lat, lng: map.getCenter().lng,
-                country: country,
-                timestamp: new Date().toISOString()
-            });
-
-            document.getElementById('form-container').classList.add('hidden');
-            document.getElementById('thank-you-msg').classList.remove('hidden');
-        } catch(e) { alert("Submission error."); }
+        const n = document.getElementById('uName').value, p = document.getElementById('uPhone').value;
+        if(!n || !p) return alert("Required");
+        const geo = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${map.getCenter().lat}&lon=${map.getCenter().lng}`).then(r => r.json());
+        await addDoc(collection(db, "souls"), { name: n, phone: p, lat: map.getCenter().lat, lng: map.getCenter().lng, country: geo.address.country || "Global", timestamp: new Date().toISOString() });
+        document.getElementById('form-container').classList.add('hidden'); document.getElementById('thank-you-msg').classList.remove('hidden');
     };
 
-    window.resetToHome = () => { window.location.reload(); };
+    window.toggleAdmin = (s) => { isUserPath = !s; document.getElementById('user-section').classList.toggle('hidden', s); document.getElementById('admin-section').classList.toggle('hidden', !s); if(s) initMap(); };
 
-    window.toggleAdmin = (show) => {
-        isUserPath = !show;
-        document.getElementById('user-section').classList.toggle('hidden', show);
-        document.getElementById('admin-section').classList.toggle('hidden', !show);
-        if(show) initMap();
-    };
-
-    // --- DASHBOARD LOGIC ---
     window.doAdminLogin = async () => {
-        const email = document.getElementById('aEmail').value.toLowerCase().trim();
-        const pass = document.getElementById('aPass').value;
         try {
-            await signInWithEmailAndPassword(auth, email, pass);
-            const pSnap = await getDocs(query(collection(db, "pastors"), where("email", "==", email)));
-            if (!pSnap.empty) {
-                currentRole = 'pastor';
-                assignedRegion = pSnap.docs[0].data().region;
-                document.getElementById('dash-title').innerText = "Counselor: " + assignedRegion;
-            } else {
-                currentRole = 'admin';
-                document.getElementById('pastor-crud').classList.remove('hidden');
-                listenPastors();
-            }
-            document.getElementById('admin-login').classList.add('hidden');
-            document.getElementById('admin-dash').classList.remove('hidden');
+            await signInWithEmailAndPassword(auth, document.getElementById('aEmail').value, document.getElementById('aPass').value);
+            const pSnap = await getDocs(query(collection(db, "pastors"), where("email", "==", document.getElementById('aEmail').value.toLowerCase())));
+            if(!pSnap.empty) { currentRole = 'pastor'; assignedRegion = pSnap.docs[0].data().region; }
+            else { currentRole = 'admin'; document.getElementById('pastor-crud').classList.remove('hidden'); listenPastors(); }
+            document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-dash').classList.remove('hidden');
             startLiveDashboard();
-        } catch(e) { alert("Access Denied."); }
+        } catch(e) { alert("Denied"); }
     };
 
     function startLiveDashboard() {
-        const q = (currentRole === 'pastor') ? 
-            query(collection(db, "souls"), where("country", "==", assignedRegion)) : 
-            query(collection(db, "souls"), orderBy("timestamp", "desc"));
-
-        onSnapshot(q, (snap) => {
-            harvestData = [];
-            clusterGroup.clearLayers();
-            let todayCount = 0;
-            const todayStr = new Date().toISOString().split('T')[0];
-            
+        const qSnap = (currentRole === 'pastor') ? query(collection(db, "souls"), where("country", "==", assignedRegion)) : query(collection(db, "souls"), orderBy("timestamp", "desc"));
+        onSnapshot(qSnap, (snap) => {
+            harvestData = []; clusterGroup.clearLayers(); let today = 0, tStr = new Date().toISOString().split('T')[0];
             snap.forEach(d => {
-                const s = d.data();
-                harvestData.push(s);
-                if(s.timestamp.startsWith(todayStr)) todayCount++;
-                
-                // RESTORED: Individual WhatsApp Follow-up on Map Popup
-                const msg = encodeURIComponent("Shalom! This is a follow up on your journey in Christ. How can we pray with you today?");
-                const popup = `<b>${s.name}</b><br>${s.country}<br><a href="https://wa.me/${s.phone.replace(/\D/g,'')}?text=${msg}" target="_blank" style="color:var(--gold); font-weight:bold;">WhatsApp Follow-Up</a>`;
-                clusterGroup.addLayer(L.marker([s.lat, s.lng]).bindPopup(popup));
+                const s = d.data(); harvestData.push(s); if(s.timestamp.startsWith(tStr)) today++;
+                const link = `https://wa.me/${s.phone.replace(/\D/g,'')}?text=${encodeURIComponent("Shalom!")}`;
+                clusterGroup.addLayer(L.marker([s.lat, s.lng]).bindPopup(`<b>${s.name}</b><br><a href="${link}" target="_blank">WhatsApp</a>`));
             });
-            
-            document.getElementById('s-total').innerText = harvestData.length;
-            document.getElementById('s-today').innerText = todayCount;
-            updateChart();
+            document.getElementById('s-total').innerText = harvestData.length; document.getElementById('s-today').innerText = today; updateChart();
         });
     }
 
-    // --- EXPORT PER DAY PER REGION ---
     window.exportData = () => {
-        const dateFilter = document.getElementById('exportDate').value;
-        const regionFilter = document.getElementById('exportRegion').value.toLowerCase();
-        
-        let filtered = harvestData;
-        if(dateFilter) filtered = filtered.filter(s => s.timestamp.startsWith(dateFilter));
-        if(regionFilter) filtered = filtered.filter(s => s.country.toLowerCase().includes(regionFilter));
-        
-        if(filtered.length === 0) return alert("No records found for this filter.");
-
-        let csv = "Name,Phone,Region,Date\n";
-        filtered.forEach(s => {
-            csv += `"${s.name}","${s.phone}","${s.country}","${s.timestamp}"\n`;
-        });
-
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.setAttribute('hidden', '');
-        a.setAttribute('href', url);
-        a.setAttribute('download', `Harvest_Report_${dateFilter || 'All'}.csv`);
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        let f = harvestData; const d = document.getElementById('exportDate').value, r = document.getElementById('exportRegion').value.toLowerCase();
+        if(d) f = f.filter(s => s.timestamp.startsWith(d)); if(r) f = f.filter(s => s.country.toLowerCase().includes(r));
+        let csv = "Name,Phone,Region\n" + f.map(s => `"${s.name}","${s.phone}","${s.country}"`).join("\n");
+        const blob = new Blob([csv], {type: 'text/csv'}); const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = "Report.csv"; a.click();
     };
 
     function updateChart() {
-        const regions = {};
-        harvestData.forEach(s => regions[s.country] = (regions[s.country] || 0) + 1);
+        const regions = {}; harvestData.forEach(s => regions[s.country] = (regions[s.country] || 0) + 1);
         if(chart) chart.destroy();
-        chart = new Chart(document.getElementById('harvestChart'), {
-            type: 'bar',
-            data: {
-                labels: Object.keys(regions),
-                datasets: [{ label: 'Souls', data: Object.values(regions), backgroundColor: '#f1c40f' }]
-            }
-        });
+        chart = new Chart(document.getElementById('harvestChart'), { type: 'bar', data: { labels: Object.keys(regions), datasets: [{ label: 'Souls', data: Object.values(regions), backgroundColor: '#f1c40f' }] } });
     }
 
-    function listenPastors() {
-        onSnapshot(collection(db, "pastors"), (snap) => {
-            const tbody = document.getElementById('pTableBody');
-            tbody.innerHTML = "";
-            snap.forEach(d => {
-                const p = d.data();
-                tbody.innerHTML += `<tr><td>${p.name}</td><td>${p.region}</td>
-                <td><button class="btn-danger" onclick="deletePastor('${d.id}')">X</button></td></tr>`;
-            });
-        });
-    }
-
-    window.savePastor = async () => {
-        const data = {
-            name: document.getElementById('pName').value,
-            region: document.getElementById('pReg').value,
-            email: document.getElementById('pEmail').value.toLowerCase().trim(),
-            phone: document.getElementById('pPhone').value
-        };
-        await addDoc(collection(db, "pastors"), data);
-        alert("Pastor Saved");
-    };
-    
+    function listenPastors() { onSnapshot(collection(db, "pastors"), (s) => { const b = document.getElementById('pTableBody'); b.innerHTML = ""; s.forEach(d => { const p = d.data(); b.innerHTML += `<tr><td>${p.name}</td><td>${p.region}</td><td><button onclick="deletePastor('${d.id}')">X</button></td></tr>`; }); }); }
+    window.savePastor = async () => { await addDoc(collection(db, "pastors"), { name: document.getElementById('pName').value, region: document.getElementById('pReg').value, email: document.getElementById('pEmail').value.toLowerCase(), phone: document.getElementById('pPhone').value }); };
     window.deletePastor = async (id) => { if(confirm("Delete?")) await deleteDoc(doc(db, "pastors", id)); };
-
-    window.bulkWhatsAppFollowUp = () => {
-        const msg = encodeURIComponent("Shalom! We rejoice with you on your salvation. God bless you!");
-        harvestData.forEach((soul, index) => {
-            setTimeout(() => {
-                window.open(`https://wa.me/${soul.phone.replace(/\D/g,'')}?text=${msg}`, '_blank');
-            }, index * 2000);
-        });
-    };
+    window.bulkWhatsAppFollowUp = () => { harvestData.forEach((s, i) => setTimeout(() => window.open(`https://wa.me/${s.phone.replace(/\D/g,'')}?text=Shalom`, '_blank'), i * 2000)); };
+    window.resetToHome = () => location.reload();
 </script>
 </body>
 </html>
