@@ -59,7 +59,7 @@
         .stat-card { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 18px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
         .stat-val { font-size: 2rem; color: var(--gold); font-weight: 800; display: block; }
         
-        .hidden { display: none; }
+        .hidden { display: none !important; }
         .pulse-marker { width: 18px; height: 18px; background: var(--gold); border: 2px solid #fff; border-radius: 50%; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(241, 196, 15, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(241, 196, 15, 0); } 100% { box-shadow: 0 0 0 0 rgba(241, 196, 15, 0); } }
     </style>
@@ -75,10 +75,10 @@
 </section>
 
 <div id="gate-scripture" class="overlay-gate hidden">
-    <div style="max-width: 800px; text-align: center;">
-        <h2 style="font-family: 'Cinzel'; color: var(--gold); font-size: 3rem;">Jesus is Lord</h2>
-        <p style="font-size: 1.5rem; margin-bottom: 20px;">"For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life." <br><small>(John 3:16)</small></p>
-        <p style="font-size: 1.5rem;">"If you declare with your mouth, “Jesus is Lord,” and believe in your heart that God raised him from the dead, you will be saved." <br><small>(Romans 10:9)</small></p>
+    <div>
+        <h2 style="font-family: 'Cinzel'; color: var(--gold); font-size: 3rem; text-align: center;">Jesus is Lord</h2>
+        <p style="font-size: 1.5rem; margin-bottom: 20px; text-align: center;">"For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life." <br><small>(John 3:16)</small></p>
+        <p style="font-size: 1.5rem; text-align: center;">"If you declare with your mouth, “Jesus is Lord,” and believe in your heart that God raised him from the dead, you will be saved." <br><small>(Romans 10:9)</small></p>
         <button class="btn btn-gold" style="margin-top: 40px; font-size: 1.5rem;" onclick="showPrayer()">I Believe</button>
     </div>
 </div>
@@ -176,27 +176,110 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
     let map, clusterGroup, chart, recognition, masterWordSet = new Set(), isUserPath = false, harvestData = [], currentRole = 'admin', assignedRegion = null;
+    let autoLat = 0, autoLng = 0;
 
-    window.startJourney = () => { isUserPath = true; window.scrollTo({ top: window.innerHeight, behavior: 'smooth' }); initMap(); };
+    // Background fail-safe IP geolocation loader
+    async function fallbackIPGeolocate() {
+        try {
+            const res = await fetch('https://ipapi.co/json/').then(r => r.json());
+            if(res && res.latitude && res.longitude) {
+                autoLat = res.latitude;
+                autoLng = res.longitude;
+                updateMapWithCoordinates();
+            }
+        } catch(e) {
+            // Fallback backup provider if IPAPI fails
+            try {
+                const res2 = await fetch('https://ip-api.com/json/').then(r => r.json());
+                if(res2 && res2.lat && res2.lon) {
+                    autoLat = res2.lat;
+                    autoLng = res2.lon;
+                    updateMapWithCoordinates();
+                }
+            } catch(err) { console.log("All geolocation fallbacks exhausted."); }
+        }
+    }
+
+    function updateMapWithCoordinates() {
+        if (map && autoLat !== 0) {
+            map.setView([autoLat, autoLng], 12);
+            const pulse = L.divIcon({ className: 'pulse-marker', iconSize: [18, 18] });
+            L.marker([autoLat, autoLng], {icon: pulse}).addTo(map);
+        }
+    }
+
+    // Auto-detect triggers instantly on page mount
+    window.addEventListener('DOMContentLoaded', () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    autoLat = position.coords.latitude;
+                    autoLng = position.coords.longitude;
+                    updateMapWithCoordinates();
+                },
+                (error) => {
+                    console.log("Browser location denied/timed out. Querying IP-Network geolocation alternative...");
+                    fallbackIPGeolocate();
+                },
+                { enableHighAccuracy: true, timeout: 7000 }
+            );
+        } else {
+            fallbackIPGeolocate();
+        }
+    });
+
+    window.startJourney = () => { 
+        isUserPath = true; 
+        window.scrollTo({ top: window.innerHeight, behavior: 'smooth' }); 
+        initMap(); 
+    };
 
     function initMap() {
         if (map) return;
-        map = L.map('map', { zoomControl: false }).setView([0,0], 2);
+        const initialLat = autoLat !== 0 ? autoLat : 0;
+        const initialLng = autoLng !== 0 ? autoLng : 0;
+        const initialZoom = autoLat !== 0 ? 12 : 2;
+
+        map = L.map('map', { zoomControl: false }).setView([initialLat, initialLng], initialZoom);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         clusterGroup = L.markerClusterGroup().addTo(map);
-        map.locate({setView: true, maxZoom: 12});
-        map.on('locationfound', (e) => {
+
+        if(autoLat !== 0) {
             const pulse = L.divIcon({ className: 'pulse-marker', iconSize: [18, 18] });
-            L.marker(e.latlng, {icon: pulse}).addTo(map);
+            L.marker([autoLat, autoLng], {icon: pulse}).addTo(map);
             if (isUserPath) playScriptureSequence();
-        });
+        } else {
+            // If location discovery is still running mid-click
+            map.locate({setView: true, maxZoom: 12});
+            map.on('locationfound', (e) => {
+                autoLat = e.latlng.lat;
+                autoLng = e.latlng.lng;
+                const pulse = L.divIcon({ className: 'pulse-marker', iconSize: [18, 18] });
+                L.marker(e.latlng, {icon: pulse}).addTo(map);
+                if (isUserPath) playScriptureSequence();
+            });
+            map.on('locationerror', () => {
+                // If map core triggers error, force execution using global fallback bounds
+                if (isUserPath) playScriptureSequence();
+            });
+        }
     }
 
     function playScriptureSequence() {
         let count = 0;
-        const msg = new SpeechSynthesisUtterance("Jesus is Lord");
-        msg.onend = () => { count++; if(count < 7) window.speechSynthesis.speak(msg); else document.getElementById('gate-scripture').classList.remove('hidden'); };
-        window.speechSynthesis.speak(msg);
+        function speakLoop() {
+            if (count < 7) {
+                const msg = new SpeechSynthesisUtterance("Jesus is Lord");
+                msg.onend = () => {
+                    count++;
+                    speakLoop();
+                };
+                window.speechSynthesis.speak(msg);
+            } else {
+                document.getElementById('gate-scripture').classList.remove('hidden');
+            }
+        }
+        speakLoop();
     }
 
     window.showPrayer = async () => { 
@@ -230,12 +313,31 @@
     window.submitToKingdom = async () => {
         const n = document.getElementById('uName').value, p = document.getElementById('uPhone').value;
         if(!n || !p) return alert("Required");
-        const geo = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${map.getCenter().lat}&lon=${map.getCenter().lng}`).then(r => r.json());
-        await addDoc(collection(db, "souls"), { name: n, phone: p, lat: map.getCenter().lat, lng: map.getCenter().lng, country: geo.address.country || "Global", timestamp: new Date().toISOString() });
+        const currentLat = map.getCenter().lat;
+        const currentLng = map.getCenter().lng;
+        let countryName = "Global";
+        try {
+            const geo = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentLat}&lon=${currentLng}`).then(r => r.json());
+            if(geo && geo.address && geo.address.country) countryName = geo.address.country;
+        } catch(err) { console.log("Nominatim address conversion failed; default to Global tag."); }
+        
+        await addDoc(collection(db, "souls"), { name: n, phone: p, lat: currentLat, lng: currentLng, country: countryName, timestamp: new Date().toISOString() });
         document.getElementById('form-container').classList.add('hidden'); document.getElementById('thank-you-msg').classList.remove('hidden');
     };
 
-    window.toggleAdmin = (s) => { isUserPath = !s; document.getElementById('user-section').classList.toggle('hidden', s); document.getElementById('admin-section').classList.toggle('hidden', !s); if(s) initMap(); };
+    window.toggleAdmin = (s) => { 
+        isUserPath = !s; 
+        if(s) {
+            document.getElementById('entrance').classList.add('hidden');
+            document.getElementById('user-section').classList.add('hidden'); 
+            document.getElementById('admin-section').classList.remove('hidden'); 
+            initMap(); 
+        } else {
+            document.getElementById('entrance').classList.remove('hidden');
+            document.getElementById('user-section').classList.remove('hidden'); 
+            document.getElementById('admin-section').classList.add('hidden'); 
+        }
+    };
 
     window.doAdminLogin = async () => {
         try {
