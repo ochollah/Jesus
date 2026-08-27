@@ -29,8 +29,18 @@
         }
         .hero h1 { font-family: 'Cinzel', serif; font-size: clamp(2rem, 8vw, 4rem); color: var(--gold); margin-bottom: 10px; }
 
-        #map { height: 65vh; width: 100%; filter: grayscale(0.6) contrast(1.2) invert(0.9) hue-rotate(170deg); border-bottom: 3px solid var(--gold); }
-        .main-container { padding: 40px 20px; max-width: 1100px; margin: -100px auto 100px; position: relative; z-index: 100; }
+        .map-frame {
+            border: 4px solid var(--gold);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            margin: 20px auto;
+            width: 95%;
+            max-width: 1400px;
+        }
+
+        #map { height: 65vh; width: 100%; filter: contrast(1.1); }
+        .main-container { padding: 40px 20px; max-width: 1100px; margin: 0 auto 100px; position: relative; z-index: 100; }
         .card { background: var(--glass-heavy); backdrop-filter: blur(20px); border-radius: 28px; padding: clamp(20px, 5vw, 40px); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 30px 60px rgba(0,0,0,0.6); }
 
         input, select { width: 100%; padding: 15px; margin-bottom: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: white; font-size: 1.1rem; box-sizing: border-box; }
@@ -43,25 +53,31 @@
         .crud-table th, .crud-table td { padding: 15px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .crud-table th { background: rgba(255,255,255,0.05); color: var(--gold); }
 
-        .overlay-gate { position: fixed; inset: 0; background: var(--dark); z-index: 2000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
+        .overlay-gate { position: fixed; inset: 0; background: var(--dark); z-index: 2000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; overflow-y: auto; }
         
         .prayer-scroll { 
             width: 100%; background: rgba(0,0,0,0.5); border-radius: 20px; 
-            padding: clamp(20px, 4vw, 40px); margin: 20px 0; 
+            padding: clamp(20px, 4vw, 30px); margin: 20px 0; 
             border-left: 8px solid var(--gold); line-height: 1.5; 
-            font-size: clamp(1.2rem, 4vw, 2.1rem); text-align: left;
+            font-size: clamp(1.1rem, 3.5vw, 1.8rem); text-align: left;
+            box-sizing: border-box;
         }
 
         .meter-wrap { width: 100%; height: 14px; background: rgba(255,255,255,0.05); border-radius: 20px; margin: 15px 0; overflow: hidden; }
-        #voiceBar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--gold), var(--emerald)); transition: width 0.4s ease; }
+        .meter-bar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--gold), var(--emerald)); transition: width 0.3s ease; }
 
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
         .stat-card { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 18px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
         .stat-val { font-size: 2rem; color: var(--gold); font-weight: 800; display: block; }
         
+        .scripture-controls { display: flex; gap: 15px; margin-top: 20px; width: 100%; max-width: 500px; }
+        .scripture-highlight { color: var(--gold); font-weight: bold; }
+
         .hidden { display: none !important; }
         .pulse-marker { width: 18px; height: 18px; background: var(--gold); border: 2px solid #fff; border-radius: 50%; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(241, 196, 15, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(241, 196, 15, 0); } 100% { box-shadow: 0 0 0 0 rgba(241, 196, 15, 0); } }
+        
+        video { max-width: 100%; border-radius: 16px; border: 2px solid var(--gold); }
     </style>
 </head>
 <body>
@@ -74,43 +90,65 @@
     </div>
 </section>
 
+<!-- Gate 1: Scriptures Carousel -->
 <div id="gate-scripture" class="overlay-gate hidden">
-    <div>
-        <h2 style="font-family: 'Cinzel'; color: var(--gold); font-size: 3rem; text-align: center;">Jesus is Lord</h2>
-        <p style="font-size: 1.5rem; margin-bottom: 20px; text-align: center;">"For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life." <br><small>(John 3:16)</small></p>
-        <p style="font-size: 1.5rem; text-align: center;">"If you declare with your mouth, “Jesus is Lord,” and believe in your heart that God raised him from the dead, you will be saved." <br><small>(Romans 10:9)</small></p>
-        <button class="btn btn-gold" style="margin-top: 40px; font-size: 1.5rem;" onclick="showPrayer()">I Believe</button>
+    <div style="max-width: 800px; text-align: center; width: 100%;">
+        <h2 style="font-family: 'Cinzel'; color: var(--gold); font-size: 2.5rem;">Salvation Scriptures</h2>
+        <div class="meter-wrap"><div id="scriptureBar" class="meter-bar"></div></div>
+        <div class="prayer-scroll" id="scriptureText"></div>
+        <div id="sVoiceStatus" style="color: var(--gold); margin-bottom: 15px; font-style: italic;">Read scripture aloud to demonstrate manifestation...</div>
+        <div class="scripture-controls">
+            <button class="btn" style="background: rgba(255,255,255,0.1); color: white;" onclick="prevScripture()">Previous</button>
+            <button class="btn btn-gold" id="btnNextScripture" disabled onclick="nextScripture()">Next Scripture</button>
+        </div>
     </div>
 </div>
 
+<!-- Gate 2: Mandatory Salvation Video -->
+<div id="gate-video" class="overlay-gate hidden">
+    <div style="max-width: 800px; text-align: center; width: 100%;">
+        <h2 style="font-family: 'Cinzel'; color: var(--gold); font-size: 2rem; margin-bottom: 20px;">Watch Message of Salvation</h2>
+        <video id="salvationVideo" controls controlsList="nodownload">
+            <source id="videoSource" src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4">
+            Your browser does not support video play.
+        </video>
+        <p id="videoStatus" style="color: #64748b; margin-top: 10px;">Please watch the full video to unlock the Salvation Prayer.</p>
+        <button id="btnProceedToPrayer" class="btn btn-gold" disabled style="margin-top: 20px;" onclick="showPrayerGate()">Continue to Prayer</button>
+    </div>
+</div>
+
+<!-- Gate 3: Mandatory Salvation Prayer -->
 <div id="gate-prayer" class="overlay-gate hidden">
     <div style="max-width: 900px; text-align: center; width: 100%;">
         <h2 style="font-family: 'Cinzel'; color: var(--gold); font-size: 2.5rem;">The Prayer of Salvation</h2>
-        <div class="meter-wrap"><div id="voiceBar"></div></div>
+        <div class="meter-wrap"><div id="voiceBar" class="meter-bar"></div></div>
         <div class="prayer-scroll" id="prayerText">
             Lord Jesus, I come to You today. I acknowledge that I am a sinner. I believe You died for my sins and rose again on the third day. 
             I repent and turn from my old ways. Wash me clean with Your precious blood. Fill me with Your Holy Spirit. 
             From today, You are my Lord and Savior. I am now a child of God. Thank You Jesus for saving me! Amen.
         </div>
-        <div id="vStatus" style="color: var(--gold); margin-bottom: 15px; font-style: italic;">Listening for your voice...</div>
-        <button id="btnAmen" class="btn btn-gold" disabled onclick="showForm()">Amen, I have Prayed</button>
+        <div id="vStatus" style="color: var(--gold); margin-bottom: 15px; font-style: italic;">Read prayer aloud to reach 100% manifestation...</div>
+        <button id="btnAmen" class="btn btn-gold" disabled onclick="showForm()">Manifested - Proceed to Registration</button>
     </div>
 </div>
 
-<div id="map"></div>
+<!-- Global Frame Map View -->
+<div class="map-frame">
+    <div id="map"></div>
+</div>
 
 <div class="main-container">
     <div id="user-section" class="card">
         <div id="form-container" class="hidden">
             <h2 style="color: var(--gold); margin-top:0;">Register Your Soul</h2>
             <input type="text" id="uName" placeholder="Full Name">
-            <input type="tel" id="uPhone" placeholder="WhatsApp Number">
+            <input type="tel" id="uPhone" placeholder="WhatsApp / Phone Number">
             <button class="btn btn-gold" onclick="submitToKingdom()">Submit to the Book of Life</button>
         </div>
         <div id="thank-you-msg" class="hidden" style="text-align:center;">
             <h2 style="color: var(--gold);">Hallelujah!</h2>
-            <p style="font-size: 1.3rem;">Your name has been written in the Book of Life.</p>
-            <button class="btn btn-gold" style="width: auto; margin-top: 20px;" onclick="resetToHome()">OK</button>
+            <p id="feedbackText" style="font-size: 1.3rem; line-height: 1.6;"></p>
+            <button class="btn btn-gold" style="width: auto; margin-top: 20px;" onclick="resetToHome()">Amen</button>
         </div>
         <div id="wait-msg" style="text-align:center;"><p>Waiting for the move of the Spirit...</p></div>
         <div style="text-align: center; margin-top: 30px;">
@@ -129,10 +167,29 @@
 
         <div id="admin-dash" class="hidden">
             <h2 id="dash-title" style="color: var(--gold); margin-top:0;">Kingdom Dashboard</h2>
+            
+            <!-- Direct Video File Upload & Live Preview -->
+            <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05);">
+                <h3 style="color: var(--gold); margin-top: 0;">Upload Salvation Video File</h3>
+                <input type="file" id="adminVideoFile" accept="video/mp4,video/mkv,video/webm">
+                <div class="meter-wrap"><div id="uploadBar" class="meter-bar"></div></div>
+                <p id="uploadStatus" style="font-size:0.9rem; color: var(--gold); margin: 5px 0;"></p>
+                <button class="btn btn-gold" style="margin-top: 5px;" onclick="uploadVideoFile()">Upload & Publish Video</button>
+                
+                <!-- Live Admin Video Preview Player -->
+                <div id="adminPreviewContainer" class="hidden" style="margin-top: 20px; text-align: center;">
+                    <h4 style="color: var(--gold); margin-bottom: 10px;">Active Published Video Preview:</h4>
+                    <video id="adminPreviewVideo" controls style="max-height: 250px; width: 100%;">
+                        <source id="adminPreviewSource" src="" type="video/mp4">
+                        Your browser does not support video play.
+                    </video>
+                </div>
+            </div>
+
             <div id="pastor-crud" class="hidden">
                 <h3 style="color: var(--gold);">Manage Counselors</h3>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input type="text" id="pName" placeholder="Pastor Name"><input type="text" id="pReg" placeholder="Country">
+                    <input type="text" id="pName" placeholder="Pastor Name"><input type="text" id="pReg" placeholder="Country / Region">
                     <input type="email" id="pEmail" placeholder="Email"><input type="tel" id="pPhone" placeholder="WhatsApp">
                 </div>
                 <button class="btn btn-gold" style="margin-top:10px;" onclick="savePastor()">Add Pastor</button>
@@ -145,9 +202,11 @@
             </div>
 
             <div style="margin-bottom: 20px;">
-                <h3 style="color: var(--gold);">Export Records</h3>
-                <div style="display: flex; gap: 10px;">
-                    <input type="date" id="exportDate" style="margin:0;"><input type="text" id="exportRegion" placeholder="Region" style="margin:0;">
+                <h3 style="color: var(--gold);">Filter & Export Map Data</h3>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="date" id="exportDate" style="margin:0; flex: 1;">
+                    <input type="text" id="exportRegion" placeholder="Region Filter" style="margin:0; flex: 1;">
+                    <button class="btn btn-gold" style="width: auto;" onclick="applyMapFilters()">Filter Map</button>
                     <button class="btn btn-gold" style="width: auto;" onclick="exportData()">Export CSV</button>
                 </div>
             </div>
@@ -163,22 +222,75 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, deleteDoc, doc, getDocs, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, deleteDoc, doc, getDocs, query, where, orderBy, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
-        apiKey: "AIzaSyARdW7FdlmJunFE9o-dPNGTqkLflozt-GQ", authDomain: "king-b5942.firebaseapp.com",
-        projectId: "king-b5942", storageBucket: "king-b5942.firebasestorage.app",
-        messagingSenderId: "140800959449", appId: "1:140800959449:web:c20898e51cd065c091afc8"
+        apiKey: "AIzaSyARdW7FdlmJunFE9o-dPNGTqkLflozt-GQ", 
+        authDomain: "king-b5942.firebaseapp.com",
+        projectId: "king-b5942", 
+        storageBucket: "king-b5942.firebasestorage.app",
+        messagingSenderId: "140800959449", 
+        appId: "1:140800959449:web:c20898e51cd065c091afc8"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
-    let map, clusterGroup, chart, recognition, masterWordSet = new Set(), isUserPath = false, harvestData = [], currentRole = 'admin', assignedRegion = null;
-    let autoLat = 0, autoLng = 0;
 
-    // Background fail-safe IP geolocation loader
+    const scriptures = [
+        { text: "For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.", ref: "John 3:16" },
+        { text: "If you declare with your mouth, Jesus is Lord, and believe in your heart that God raised him from the dead, you will be saved.", ref: "Romans 10:9" },
+        { text: "For all have sinned, and come short of the glory of God. Being justified freely by his grace through the redemption that is in Christ Jesus.", ref: "Romans 3:23-24" }
+    ];
+
+    let currentScriptureIdx = 0;
+    let map, clusterGroup, chart, recognition, isUserPath = false, harvestData = [], currentRole = 'admin', assignedRegion = null;
+    let autoLat = 0, autoLng = 0;
+    let scriptureWordsSet = new Set();
+    let prayerWordsSet = new Set();
+
+    function updateAdminPreview(url) {
+        const previewContainer = document.getElementById('adminPreviewContainer');
+        const previewVideo = document.getElementById('adminPreviewVideo');
+        const previewSource = document.getElementById('adminPreviewSource');
+        if (previewContainer && previewVideo && previewSource) {
+            previewSource.src = url;
+            previewVideo.load();
+            previewContainer.classList.remove('hidden');
+        }
+    }
+
+    // Loads video to user portal and admin preview
+    window.loadActiveVideo = async function() {
+        try {
+            const vSnap = await getDocs(collection(db, "config"));
+            vSnap.forEach(d => {
+                if(d.id === "video" && d.data().url) {
+                    const videoUrl = d.data().url;
+                    
+                    // User Video
+                    const userSource = document.getElementById('videoSource');
+                    const userVideo = document.getElementById('salvationVideo');
+                    if (userSource && userVideo) {
+                        userSource.src = videoUrl;
+                        userVideo.load();
+                    }
+                    
+                    // Admin Preview
+                    updateAdminPreview(videoUrl);
+                }
+            });
+        } catch(e) { console.log("Default video loaded or error reading Firestore:", e); }
+    };
+
+    window.initMap = function() {
+        if (map) return;
+        map = L.map('map', { zoomControl: true }).setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        clusterGroup = L.markerClusterGroup().addTo(map);
+    };
+
     async function fallbackIPGeolocate() {
         try {
             const res = await fetch('https://ipapi.co/json/').then(r => r.json());
@@ -188,7 +300,6 @@
                 updateMapWithCoordinates();
             }
         } catch(e) {
-            // Fallback backup provider if IPAPI fails
             try {
                 const res2 = await fetch('https://ip-api.com/json/').then(r => r.json());
                 if(res2 && res2.lat && res2.lon) {
@@ -202,14 +313,15 @@
 
     function updateMapWithCoordinates() {
         if (map && autoLat !== 0) {
-            map.setView([autoLat, autoLng], 12);
+            map.setView([autoLat, autoLng], 10);
             const pulse = L.divIcon({ className: 'pulse-marker', iconSize: [18, 18] });
             L.marker([autoLat, autoLng], {icon: pulse}).addTo(map);
         }
     }
 
-    // Auto-detect triggers instantly on page mount
     window.addEventListener('DOMContentLoaded', () => {
+        window.initMap();
+        window.loadActiveVideo();
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -217,10 +329,7 @@
                     autoLng = position.coords.longitude;
                     updateMapWithCoordinates();
                 },
-                (error) => {
-                    console.log("Browser location denied/timed out. Querying IP-Network geolocation alternative...");
-                    fallbackIPGeolocate();
-                },
+                () => fallbackIPGeolocate(),
                 { enableHighAccuracy: true, timeout: 7000 }
             );
         } else {
@@ -230,99 +339,166 @@
 
     window.startJourney = () => { 
         isUserPath = true; 
-        window.scrollTo({ top: window.innerHeight, behavior: 'smooth' }); 
-        initMap(); 
+        playScriptureSequence(); 
     };
-
-    function initMap() {
-        if (map) return;
-        const initialLat = autoLat !== 0 ? autoLat : 0;
-        const initialLng = autoLng !== 0 ? autoLng : 0;
-        const initialZoom = autoLat !== 0 ? 12 : 2;
-
-        map = L.map('map', { zoomControl: false }).setView([initialLat, initialLng], initialZoom);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        clusterGroup = L.markerClusterGroup().addTo(map);
-
-        if(autoLat !== 0) {
-            const pulse = L.divIcon({ className: 'pulse-marker', iconSize: [18, 18] });
-            L.marker([autoLat, autoLng], {icon: pulse}).addTo(map);
-            if (isUserPath) playScriptureSequence();
-        } else {
-            // If location discovery is still running mid-click
-            map.locate({setView: true, maxZoom: 12});
-            map.on('locationfound', (e) => {
-                autoLat = e.latlng.lat;
-                autoLng = e.latlng.lng;
-                const pulse = L.divIcon({ className: 'pulse-marker', iconSize: [18, 18] });
-                L.marker(e.latlng, {icon: pulse}).addTo(map);
-                if (isUserPath) playScriptureSequence();
-            });
-            map.on('locationerror', () => {
-                // If map core triggers error, force execution using global fallback bounds
-                if (isUserPath) playScriptureSequence();
-            });
-        }
-    }
 
     function playScriptureSequence() {
         let count = 0;
-        function speakLoop() {
-            if (count < 7) {
-                const msg = new SpeechSynthesisUtterance("Jesus is Lord");
+        const speakLoop = () => {
+            if (count < 5) {
+                const msg = new SpeechSynthesisUtterance("Jesus is Lord and Saviour");
+                const voices = window.speechSynthesis.getVoices();
+                const maleVoice = voices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('james'));
+                if (maleVoice) msg.voice = maleVoice;
                 msg.onend = () => {
                     count++;
                     speakLoop();
                 };
                 window.speechSynthesis.speak(msg);
             } else {
+                renderScripture();
                 document.getElementById('gate-scripture').classList.remove('hidden');
+                startScriptureRecognition();
             }
+        };
+        
+        if (speechSynthesis.getVoices().length === 0) {
+            window.speechSynthesis.onvoiceschanged = speakLoop;
+        } else {
+            speakLoop();
         }
-        speakLoop();
     }
 
-    window.showPrayer = async () => { 
-        try { await navigator.mediaDevices.getUserMedia({ audio: true }); } catch(e) {}
-        document.getElementById('gate-scripture').classList.add('hidden'); 
-        document.getElementById('gate-prayer').classList.remove('hidden');
-        startVoiceEngine();
-    };
+    function renderScripture() {
+        scriptureWordsSet.clear();
+        document.getElementById('scriptureBar').style.width = '0%';
+        document.getElementById('btnNextScripture').disabled = true;
+        const item = scriptures[currentScriptureIdx];
+        document.getElementById('scriptureText').innerHTML = `<span class="scripture-highlight">"${item.text}"</span><br><br><small>— ${item.ref}</small>`;
+    }
 
-    function startVoiceEngine() {
+    function startScriptureRecognition() {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if(!SpeechRecognition) return document.getElementById('btnAmen').disabled = false;
+        if(!SpeechRecognition) { document.getElementById('btnNextScripture').disabled = false; return; }
+        
+        if(recognition) recognition.stop();
         recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
-        const words = document.getElementById('prayerText').innerText.toLowerCase().split(/\W+/).filter(w => w.length > 2);
+
         recognition.onresult = (event) => {
-            let t = ""; for (let i = event.resultIndex; i < event.results.length; ++i) t += event.results[i][0].transcript.toLowerCase();
-            document.getElementById('vStatus').innerText = t;
-            words.forEach(w => { if(t.includes(w)) masterWordSet.add(w); });
-            const p = Math.round((masterWordSet.size / words.length) * 100);
-            document.getElementById('voiceBar').style.width = p + "%";
-            if (p >= 75 || t.includes("amen")) document.getElementById('btnAmen').disabled = false;
+            let t = ""; 
+            for (let i = event.resultIndex; i < event.results.length; ++i) t += event.results[i][0].transcript.toLowerCase();
+            document.getElementById('sVoiceStatus').innerText = t;
+            
+            const words = scriptures[currentScriptureIdx].text.toLowerCase().split(/\W+/).filter(w => w.length > 2);
+            words.forEach(w => { if(t.includes(w)) scriptureWordsSet.add(w); });
+            
+            const pct = Math.min(100, Math.round((scriptureWordsSet.size / words.length) * 100));
+            document.getElementById('scriptureBar').style.width = pct + "%";
+            if (pct >= 70) document.getElementById('btnNextScripture').disabled = false;
         };
-        recognition.onend = () => { if(document.getElementById('btnAmen').disabled) recognition.start(); };
-        recognition.start();
+        recognition.onend = () => { 
+            if(document.getElementById('btnNextScripture').disabled && !document.getElementById('gate-scripture').classList.contains('hidden')) {
+                recognition.start(); 
+            }
+        };
+        try { recognition.start(); } catch(e){}
     }
 
-    window.showForm = () => { if(recognition) recognition.stop(); document.getElementById('gate-prayer').classList.add('hidden'); document.getElementById('wait-msg').classList.add('hidden'); document.getElementById('form-container').classList.remove('hidden'); };
+    window.nextScripture = () => {
+        if(currentScriptureIdx < scriptures.length - 1) {
+            currentScriptureIdx++;
+            renderScripture();
+            startScriptureRecognition();
+        } else {
+            if(recognition) recognition.stop();
+            document.getElementById('gate-scripture').classList.add('hidden');
+            showVideoGate();
+        }
+    };
+
+    window.prevScripture = () => {
+        if(currentScriptureIdx > 0) {
+            currentScriptureIdx--;
+            renderScripture();
+            startScriptureRecognition();
+        }
+    };
+
+    function showVideoGate() {
+        document.getElementById('gate-video').classList.remove('hidden');
+        const video = document.getElementById('salvationVideo');
+        video.onended = () => {
+            document.getElementById('btnProceedToPrayer').disabled = false;
+            document.getElementById('videoStatus').innerText = "Video complete. You may now proceed.";
+        };
+    }
+
+    window.showPrayerGate = () => {
+        document.getElementById('gate-video').classList.add('hidden');
+        document.getElementById('gate-prayer').classList.remove('hidden');
+        startPrayerRecognition();
+    };
+
+    function startPrayerRecognition() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if(!SpeechRecognition) { document.getElementById('btnAmen').disabled = false; return; }
+        
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        const words = document.getElementById('prayerText').innerText.toLowerCase().split(/\W+/).filter(w => w.length > 2);
+
+        recognition.onresult = (event) => {
+            let t = ""; 
+            for (let i = event.resultIndex; i < event.results.length; ++i) t += event.results[i][0].transcript.toLowerCase();
+            document.getElementById('vStatus').innerText = t;
+            
+            words.forEach(w => { if(t.includes(w)) prayerWordsSet.add(w); });
+            
+            const pct = Math.min(100, Math.round((prayerWordsSet.size / words.length) * 100));
+            document.getElementById('voiceBar').style.width = pct + "%";
+            
+            if (pct >= 100 || t.includes("thank you jesus for saving me")) {
+                document.getElementById('btnAmen').disabled = false;
+            }
+        };
+        
+        recognition.onend = () => { 
+            if(document.getElementById('btnAmen').disabled && !document.getElementById('gate-prayer').classList.contains('hidden')) {
+                recognition.start(); 
+            }
+        };
+        try { recognition.start(); } catch(e){}
+    }
+
+    window.showForm = () => { 
+        if(recognition) recognition.stop(); 
+        document.getElementById('gate-prayer').classList.add('hidden'); 
+        document.getElementById('wait-msg').classList.add('hidden'); 
+        document.getElementById('form-container').classList.remove('hidden'); 
+    };
 
     window.submitToKingdom = async () => {
         const n = document.getElementById('uName').value, p = document.getElementById('uPhone').value;
-        if(!n || !p) return alert("Required");
-        const currentLat = map.getCenter().lat;
-        const currentLng = map.getCenter().lng;
+        if(!n || !p) return alert("Please fill in your name and phone number.");
+        
+        const currentLat = autoLat !== 0 ? autoLat : 0;
+        const currentLng = autoLng !== 0 ? autoLng : 0;
         let countryName = "Global";
+        
         try {
             const geo = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentLat}&lon=${currentLng}`).then(r => r.json());
             if(geo && geo.address && geo.address.country) countryName = geo.address.country;
-        } catch(err) { console.log("Nominatim address conversion failed; default to Global tag."); }
+        } catch(err) { console.log("Nominatim address conversion failed."); }
         
         await addDoc(collection(db, "souls"), { name: n, phone: p, lat: currentLat, lng: currentLng, country: countryName, timestamp: new Date().toISOString() });
-        document.getElementById('form-container').classList.add('hidden'); document.getElementById('thank-you-msg').classList.remove('hidden');
+        
+        document.getElementById('form-container').classList.add('hidden'); 
+        document.getElementById('feedbackText').innerText = `Thank you, ${n}! Your decision for Christ has been registered. Please wait, a Pastor/Counselor from ${countryName} region will call you shortly to pray with you.`;
+        document.getElementById('thank-you-msg').classList.remove('hidden');
     };
 
     window.toggleAdmin = (s) => { 
@@ -331,7 +507,6 @@
             document.getElementById('entrance').classList.add('hidden');
             document.getElementById('user-section').classList.add('hidden'); 
             document.getElementById('admin-section').classList.remove('hidden'); 
-            initMap(); 
         } else {
             document.getElementById('entrance').classList.remove('hidden');
             document.getElementById('user-section').classList.remove('hidden'); 
@@ -345,42 +520,166 @@
             const pSnap = await getDocs(query(collection(db, "pastors"), where("email", "==", document.getElementById('aEmail').value.toLowerCase())));
             if(!pSnap.empty) { currentRole = 'pastor'; assignedRegion = pSnap.docs[0].data().region; }
             else { currentRole = 'admin'; document.getElementById('pastor-crud').classList.remove('hidden'); listenPastors(); }
-            document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-dash').classList.remove('hidden');
+            document.getElementById('admin-login').classList.add('hidden'); 
+            document.getElementById('admin-dash').classList.remove('hidden');
             startLiveDashboard();
-        } catch(e) { alert("Denied"); }
+            window.loadActiveVideo(); // Ensure video preview loads on dashboard unlock
+        } catch(e) { alert("Access Denied"); }
     };
 
     function startLiveDashboard() {
         const qSnap = (currentRole === 'pastor') ? query(collection(db, "souls"), where("country", "==", assignedRegion)) : query(collection(db, "souls"), orderBy("timestamp", "desc"));
         onSnapshot(qSnap, (snap) => {
-            harvestData = []; clusterGroup.clearLayers(); let today = 0, tStr = new Date().toISOString().split('T')[0];
-            snap.forEach(d => {
-                const s = d.data(); harvestData.push(s); if(s.timestamp.startsWith(tStr)) today++;
-                const link = `https://wa.me/${s.phone.replace(/\D/g,'')}?text=${encodeURIComponent("Shalom!")}`;
-                clusterGroup.addLayer(L.marker([s.lat, s.lng]).bindPopup(`<b>${s.name}</b><br><a href="${link}" target="_blank">WhatsApp</a>`));
-            });
-            document.getElementById('s-total').innerText = harvestData.length; document.getElementById('s-today').innerText = today; updateChart();
+            harvestData = []; 
+            snap.forEach(d => harvestData.push({ id: d.id, ...d.data() }));
+            renderMapData(harvestData);
         });
     }
 
-    window.exportData = () => {
-        let f = harvestData; const d = document.getElementById('exportDate').value, r = document.getElementById('exportRegion').value.toLowerCase();
-        if(d) f = f.filter(s => s.timestamp.startsWith(d)); if(r) f = f.filter(s => s.country.toLowerCase().includes(r));
-        let csv = "Name,Phone,Region\n" + f.map(s => `"${s.name}","${s.phone}","${s.country}"`).join("\n");
-        const blob = new Blob([csv], {type: 'text/csv'}); const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = "Report.csv"; a.click();
-    };
-
-    function updateChart() {
-        const regions = {}; harvestData.forEach(s => regions[s.country] = (regions[s.country] || 0) + 1);
-        if(chart) chart.destroy();
-        chart = new Chart(document.getElementById('harvestChart'), { type: 'bar', data: { labels: Object.keys(regions), datasets: [{ label: 'Souls', data: Object.values(regions), backgroundColor: '#f1c40f' }] } });
+    function renderMapData(data) {
+        clusterGroup.clearLayers(); 
+        let today = 0, tStr = new Date().toISOString().split('T')[0];
+        
+        data.forEach(s => {
+            if(s.timestamp && s.timestamp.startsWith(tStr)) today++;
+            const waLink = `https://wa.me/${s.phone.replace(/\D/g,'')}?text=${encodeURIComponent("Shalom " + s.name + ", God bless you!")}`;
+            const popupContent = `
+                <div style="color: #0f172a; font-family: sans-serif;">
+                    <h3 style="margin: 0 0 5px 0; color: #27ae60;">${s.name}</h3>
+                    <p style="margin:0 0 5px 0;"><b>Phone:</b> ${s.phone}</p>
+                    <p style="margin:0 0 5px 0;"><b>Region:</b> ${s.country || 'Global'}</p>
+                    <p style="margin:0 0 10px 0; font-size: 0.8rem; color: #64748b;">${new Date(s.timestamp).toLocaleString()}</p>
+                    <a href="${waLink}" target="_blank" style="background: #27ae60; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; display: inline-block; font-size: 0.8rem;">Contact via WhatsApp</a>
+                </div>`;
+            clusterGroup.addLayer(L.marker([s.lat, s.lng]).bindPopup(popupContent));
+        });
+        
+        document.getElementById('s-total').innerText = data.length; 
+        document.getElementById('s-today').innerText = today; 
+        updateChart(data);
     }
 
-    function listenPastors() { onSnapshot(collection(db, "pastors"), (s) => { const b = document.getElementById('pTableBody'); b.innerHTML = ""; s.forEach(d => { const p = d.data(); b.innerHTML += `<tr><td>${p.name}</td><td>${p.region}</td><td><button onclick="deletePastor('${d.id}')">X</button></td></tr>`; }); }); }
-    window.savePastor = async () => { await addDoc(collection(db, "pastors"), { name: document.getElementById('pName').value, region: document.getElementById('pReg').value, email: document.getElementById('pEmail').value.toLowerCase(), phone: document.getElementById('pPhone').value }); };
-    window.deletePastor = async (id) => { if(confirm("Delete?")) await deleteDoc(doc(db, "pastors", id)); };
-    window.bulkWhatsAppFollowUp = () => { harvestData.forEach((s, i) => setTimeout(() => window.open(`https://wa.me/${s.phone.replace(/\D/g,'')}?text=Shalom`, '_blank'), i * 2000)); };
+    window.applyMapFilters = () => {
+        let filtered = harvestData;
+        const dateVal = document.getElementById('exportDate').value;
+        const regionVal = document.getElementById('exportRegion').value.toLowerCase();
+
+        if (dateVal) filtered = filtered.filter(s => s.timestamp && s.timestamp.startsWith(dateVal));
+        if (regionVal) filtered = filtered.filter(s => s.country && s.country.toLowerCase().includes(regionVal));
+
+        renderMapData(filtered);
+    };
+
+    window.exportData = () => {
+        let f = harvestData; 
+        const d = document.getElementById('exportDate').value, r = document.getElementById('exportRegion').value.toLowerCase();
+        if(d) f = f.filter(s => s.timestamp && s.timestamp.startsWith(d)); 
+        if(r) f = f.filter(s => s.country && s.country.toLowerCase().includes(r));
+        
+        let csv = "Name,Phone,Region,Date\n" + f.map(s => `"${s.name}","${s.phone}","${s.country}","${s.timestamp}"`).join("\n");
+        const blob = new Blob([csv], {type: 'text/csv'}); 
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); 
+        a.href = url; 
+        a.download = `Kingdom_Harvest_Report.csv`; 
+        a.click();
+    };
+
+    function updateChart(data = harvestData) {
+        const regions = {}; 
+        data.forEach(s => { const reg = s.country || "Global"; regions[reg] = (regions[reg] || 0) + 1; });
+        if(chart) chart.destroy();
+        chart = new Chart(document.getElementById('harvestChart'), { 
+            type: 'bar', 
+            data: { 
+                labels: Object.keys(regions), 
+                datasets: [{ label: 'Souls Harvested by Region', data: Object.values(regions), backgroundColor: '#f1c40f' }] 
+            } 
+        });
+    }
+
+    // Upload function with immediate local and Firestore preview sync
+    window.uploadVideoFile = async () => {
+        const fileInput = document.getElementById('adminVideoFile');
+        const file = fileInput.files[0];
+        if(!file) return alert("Please select a video file first.");
+
+        const cloudName = "saqv9tcx"; 
+        const uploadPreset = "dyndj6gw"; 
+
+        if(cloudName === "YOUR_CLOUDINARY_CLOUD_NAME") {
+            return alert("Please update the script with your Cloudinary Cloud Name and Unsigned Preset Name first!");
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", uploadPreset);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, true);
+
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+                const progress = (e.loaded / e.total) * 100;
+                document.getElementById('uploadBar').style.width = progress + "%";
+                document.getElementById('uploadStatus').innerText = `Uploading: ${Math.round(progress)}%`;
+            }
+        };
+
+        xhr.onload = async () => {
+            if (xhr.status === 200) {
+                const response = JSON.parse(xhr.responseText);
+                const downloadURL = response.secure_url;
+
+                // Save published URL to Firestore
+                await setDoc(doc(db, "config", "video"), { url: downloadURL });
+
+                // Update user video player
+                const videoSource = document.getElementById('videoSource');
+                const salvationVideo = document.getElementById('salvationVideo');
+                if (videoSource && salvationVideo) {
+                    videoSource.src = downloadURL;
+                    salvationVideo.load();
+                }
+
+                // Update admin video preview
+                updateAdminPreview(downloadURL);
+
+                document.getElementById('uploadStatus').innerText = "Video successfully uploaded and published globally!";
+            } else {
+                alert("Upload failed. Check your Cloudinary Cloud Name and Preset.");
+            }
+        };
+
+        xhr.send(formData);
+    };
+
+    function listenPastors() { 
+        onSnapshot(collection(db, "pastors"), (s) => { 
+            const b = document.getElementById('pTableBody'); 
+            b.innerHTML = ""; 
+            s.forEach(d => { 
+                const p = d.data(); 
+                b.innerHTML += `<tr><td>${p.name}</td><td>${p.region}</td><td><button onclick="deletePastor('${d.id}')">X</button></td></tr>`; 
+            }); 
+        }); 
+    }
+
+    window.savePastor = async () => { 
+        await addDoc(collection(db, "pastors"), { 
+            name: document.getElementById('pName').value, 
+            region: document.getElementById('pReg').value, 
+            email: document.getElementById('aEmail').value.toLowerCase(), 
+            phone: document.getElementById('pPhone').value 
+        }); 
+    };
+
+    window.deletePastor = async (id) => { if(confirm("Remove Pastor access?")) await deleteDoc(doc(db, "pastors", id)); };
+    
+    window.bulkWhatsAppFollowUp = () => { 
+        harvestData.forEach((s, i) => setTimeout(() => window.open(`https://wa.me/${s.phone.replace(/\D/g,'')}?text=Shalom%20${s.name},%20we%20are%20praying%20with%20you!`, '_blank'), i * 2000)); 
+    };
+
     window.resetToHome = () => location.reload();
 </script>
 </body>
