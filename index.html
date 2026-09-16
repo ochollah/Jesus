@@ -44,10 +44,11 @@
         .card { background: var(--glass-heavy); backdrop-filter: blur(20px); border-radius: 28px; padding: clamp(20px, 5vw, 40px); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 30px 60px rgba(0,0,0,0.6); }
 
         input, select { width: 100%; padding: 15px; margin-bottom: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: white; font-size: 1.1rem; box-sizing: border-box; }
-        .btn { padding: 16px 32px; border: none; border-radius: 12px; cursor: pointer; font-weight: 800; text-transform: uppercase; transition: var(--transition); display: inline-block; width: 100%; }
+        .btn { padding: 16px 32px; border: none; border-radius: 12px; cursor: pointer; font-weight: 800; text-transform: uppercase; transition: var(--transition); display: inline-block; width: 100%; margin-bottom: 10px; }
         .btn-gold { background: var(--gold); color: var(--dark); box-shadow: 0 10px 20px rgba(241, 196, 15, 0.3); }
         .btn-gold:disabled { background: #334155; color: #64748b; cursor: not-allowed; opacity: 0.6; }
         .btn-danger { background: var(--danger); color: white; }
+        .btn-success { background: var(--emerald); color: white; }
 
         .crud-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 0.85rem; background: rgba(0,0,0,0.2); border-radius: 15px; overflow: hidden; }
         .crud-table th, .crud-table td { padding: 15px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
@@ -60,7 +61,7 @@
             padding: clamp(20px, 4vw, 30px); margin: 20px 0; 
             border-left: 8px solid var(--gold); line-height: 1.5; 
             font-size: clamp(1.1rem, 3.5vw, 1.8rem); text-align: left;
-            box-sizing: border-box;
+            box-sizing: border-box; cursor: pointer;
         }
 
         .meter-wrap { width: 100%; height: 14px; background: rgba(255,255,255,0.05); border-radius: 20px; margin: 15px 0; overflow: hidden; }
@@ -95,8 +96,8 @@
     <div style="max-width: 800px; text-align: center; width: 100%;">
         <h2 style="font-family: 'Cinzel'; color: var(--gold); font-size: 2.5rem;">Salvation Scriptures</h2>
         <div class="meter-wrap"><div id="scriptureBar" class="meter-bar"></div></div>
-        <div class="prayer-scroll" id="scriptureText"></div>
-        <div id="sVoiceStatus" style="color: var(--gold); margin-bottom: 15px; font-style: italic;">Read scripture aloud to demonstrate manifestation...</div>
+        <div class="prayer-scroll" id="scriptureText" title="Tap text to bypass voice requirement if mic fails"></div>
+        <div id="sVoiceStatus" style="color: var(--gold); margin-bottom: 15px; font-style: italic;">Read scripture aloud to demonstrate manifestation (or tap box to unlock)...</div>
         <div class="scripture-controls">
             <button class="btn" style="background: rgba(255,255,255,0.1); color: white;" onclick="prevScripture()">Previous</button>
             <button class="btn btn-gold" id="btnNextScripture" disabled onclick="nextScripture()">Next Scripture</button>
@@ -108,12 +109,19 @@
 <div id="gate-video" class="overlay-gate hidden">
     <div style="max-width: 800px; text-align: center; width: 100%;">
         <h2 style="font-family: 'Cinzel'; color: var(--gold); font-size: 2rem; margin-bottom: 20px;">Watch Message of Salvation</h2>
-        <video id="salvationVideo" controls controlsList="nodownload">
+        <video id="salvationVideo" controls controlsList="nodownload no play">
             <source id="videoSource" src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4">
             Your browser does not support video play.
         </video>
-        <p id="videoStatus" style="color: #64748b; margin-top: 10px;">Please watch the full video to unlock the Salvation Prayer.</p>
-        <button id="btnProceedToPrayer" class="btn btn-gold" disabled style="margin-top: 20px;" onclick="showPrayerGate()">Continue to Prayer</button>
+        <p id="videoStatus" style="color: #64748b; margin-top: 10px;">Please watch the full video to unlock the decision prompt.</p>
+        
+        <div id="beliefChoice" class="hidden" style="margin-top: 20px;">
+            <h3 style="color: var(--gold);">Do you believe in the Gospel message of Jesus Christ?</h3>
+            <div style="display: flex; gap: 15px; max-width: 400px; margin: 0 auto;">
+                <button class="btn btn-success" onclick="handleBeliefChoice(true)">I Believe</button>
+                <button class="btn btn-danger" onclick="handleBeliefChoice(false)">I Do Not Believe</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -122,7 +130,7 @@
     <div style="max-width: 900px; text-align: center; width: 100%;">
         <h2 style="font-family: 'Cinzel'; color: var(--gold); font-size: 2.5rem;">The Prayer of Salvation</h2>
         <div class="meter-wrap"><div id="voiceBar" class="meter-bar"></div></div>
-        <div class="prayer-scroll" id="prayerText">
+        <div class="prayer-scroll" id="prayerText" title="Tap text to bypass voice requirement if mic fails">
             Lord Jesus, I come to You today. I acknowledge that I am a sinner. I believe You died for my sins and rose again on the third day. 
             I repent and turn from my old ways. Wash me clean with Your precious blood. Fill me with Your Holy Spirit. 
             From today, You are my Lord and Savior. I am now a child of God. Thank You Jesus for saving me! Amen.
@@ -168,17 +176,24 @@
         <div id="admin-dash" class="hidden">
             <h2 id="dash-title" style="color: var(--gold); margin-top:0;">Kingdom Dashboard</h2>
             
-            <!-- Direct Video File Upload & Live Preview -->
             <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05);">
-                <h3 style="color: var(--gold); margin-top: 0;">Upload Salvation Video File</h3>
+                <h3 style="color: var(--gold); margin-top: 0;">Salvation Video Management</h3>
+                <p id="currentVideoTitle" style="color: #cbd5e1; font-size: 0.9rem;"></p>
+                
                 <input type="file" id="adminVideoFile" accept="video/mp4,video/mkv,video/webm">
+                <input type="text" id="adminVideoUrl" placeholder="Or enter direct streaming Video URL (MP4/WebM)">
+                
                 <div class="meter-wrap"><div id="uploadBar" class="meter-bar"></div></div>
                 <p id="uploadStatus" style="font-size:0.9rem; color: var(--gold); margin: 5px 0;"></p>
-                <button class="btn btn-gold" style="margin-top: 5px;" onclick="uploadVideoFile()">Upload & Publish Video</button>
                 
-                <!-- Live Admin Video Preview Player -->
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn btn-gold" onclick="uploadVideoFile()">Upload & Publish Video</button>
+                    <button class="btn btn-success" onclick="saveVideoUrl()">Save/Edit Video Stream URL</button>
+                    <button class="btn btn-danger" onclick="deleteActiveVideo()">Delete Active Video</button>
+                </div>
+                
                 <div id="adminPreviewContainer" class="hidden" style="margin-top: 20px; text-align: center;">
-                    <h4 style="color: var(--gold); margin-bottom: 10px;">Active Published Video Preview:</h4>
+                    <h4 style="color: var(--gold); margin-bottom: 10px;">Active Published Video Streaming Preview:</h4>
                     <video id="adminPreviewVideo" controls style="max-height: 250px; width: 100%;">
                         <source id="adminPreviewSource" src="" type="video/mp4">
                         Your browser does not support video play.
@@ -239,9 +254,12 @@
     const auth = getAuth(app);
 
     const scriptures = [
+        { text: "Whosoever believeth that Jesus is the Christ is born of God: and every one that loveth him that begat loveth him also that is begotten of him.", ref: "1 John 5:1" },
         { text: "For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.", ref: "John 3:16" },
         { text: "If you declare with your mouth, Jesus is Lord, and believe in your heart that God raised him from the dead, you will be saved.", ref: "Romans 10:9" },
-        { text: "For all have sinned, and come short of the glory of God. Being justified freely by his grace through the redemption that is in Christ Jesus.", ref: "Romans 3:23-24" }
+        { text: "For all have sinned, and come short of the glory of God. Being justified freely by his grace through the redemption that is in Christ Jesus.", ref: "Romans 3:23-24" },
+        { text: "Neither is there salvation in any other: for there is none other name under heaven given among men, whereby we must be saved.", ref: "Acts 4:12" },
+        { text: "Jesus saith unto him, I am the way, the truth, and the life: no man cometh unto the Father, but by me.", ref: "John 14:6" }
     ];
 
     let currentScriptureIdx = 0;
@@ -249,35 +267,33 @@
     let autoLat = 0, autoLng = 0;
     let scriptureWordsSet = new Set();
     let prayerWordsSet = new Set();
+    let maxTimeWatched = 0;
 
     function updateAdminPreview(url) {
         const previewContainer = document.getElementById('adminPreviewContainer');
         const previewVideo = document.getElementById('adminPreviewVideo');
         const previewSource = document.getElementById('adminPreviewSource');
+        const currentVideoTitle = document.getElementById('currentVideoTitle');
         if (previewContainer && previewVideo && previewSource) {
             previewSource.src = url;
             previewVideo.load();
             previewContainer.classList.remove('hidden');
+            if(currentVideoTitle) currentVideoTitle.innerText = "Current Active Video URL: " + url;
         }
     }
 
-    // Loads video to user portal and admin preview
     window.loadActiveVideo = async function() {
         try {
             const vSnap = await getDocs(collection(db, "config"));
             vSnap.forEach(d => {
                 if(d.id === "video" && d.data().url) {
                     const videoUrl = d.data().url;
-                    
-                    // User Video
                     const userSource = document.getElementById('videoSource');
                     const userVideo = document.getElementById('salvationVideo');
                     if (userSource && userVideo) {
                         userSource.src = videoUrl;
                         userVideo.load();
                     }
-                    
-                    // Admin Preview
                     updateAdminPreview(videoUrl);
                 }
             });
@@ -289,6 +305,22 @@
         map = L.map('map', { zoomControl: true }).setView([0, 0], 2);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         clusterGroup = L.markerClusterGroup().addTo(map);
+    };
+
+    window.autoDetectLocation = function() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    autoLat = position.coords.latitude;
+                    autoLng = position.coords.longitude;
+                    updateMapWithCoordinates();
+                },
+                () => fallbackIPGeolocate(),
+                { enableHighAccuracy: true, timeout: 7000 }
+            );
+        } else {
+            fallbackIPGeolocate();
+        }
     };
 
     async function fallbackIPGeolocate() {
@@ -321,32 +353,59 @@
 
     window.addEventListener('DOMContentLoaded', () => {
         window.initMap();
+        window.autoDetectLocation();
         window.loadActiveVideo();
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    autoLat = position.coords.latitude;
-                    autoLng = position.coords.longitude;
-                    updateMapWithCoordinates();
-                },
-                () => fallbackIPGeolocate(),
-                { enableHighAccuracy: true, timeout: 7000 }
-            );
-        } else {
-            fallbackIPGeolocate();
-        }
+        setupVideoNoDragging();
+
+        // Tap-to-unlock fallbacks if microphone is disabled or failing
+        document.getElementById('scriptureText').addEventListener('click', () => {
+            document.getElementById('scriptureBar').style.width = '100%';
+            document.getElementById('btnNextScripture').disabled = false;
+        });
+
+        document.getElementById('prayerText').addEventListener('click', () => {
+            document.getElementById('voiceBar').style.width = '100%';
+            document.getElementById('btnAmen').disabled = false;
+        });
     });
+
+    function setupVideoNoDragging() {
+        const video = document.getElementById('salvationVideo');
+        if(!video) return;
+
+        video.addEventListener('timeupdate', () => {
+            if (!video.seeking) {
+                if (video.currentTime > maxTimeWatched) {
+                    maxTimeWatched = video.currentTime;
+                }
+            }
+        });
+
+        video.addEventListener('seeking', () => {
+            if (video.currentTime > maxTimeWatched) {
+                video.currentTime = maxTimeWatched;
+            }
+        });
+
+        video.addEventListener('ended', () => {
+            document.getElementById('videoStatus').innerText = "Video complete. Please answer the question below:";
+            document.getElementById('beliefChoice').classList.remove('hidden');
+        });
+    }
 
     window.startJourney = () => { 
         isUserPath = true; 
-        playScriptureSequence(); 
+        window.autoDetectLocation();
+        playJesusIsLordLoop(7, () => {
+            playScriptureSequence();
+        }); 
     };
 
-    function playScriptureSequence() {
+    function playJesusIsLordLoop(times, callback) {
         let count = 0;
         const speakLoop = () => {
-            if (count < 5) {
-                const msg = new SpeechSynthesisUtterance("Jesus is Lord and Saviour");
+            if (count < times) {
+                const msg = new SpeechSynthesisUtterance("Jesus is Lord");
                 const voices = window.speechSynthesis.getVoices();
                 const maleVoice = voices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('james'));
                 if (maleVoice) msg.voice = maleVoice;
@@ -354,19 +413,27 @@
                     count++;
                     speakLoop();
                 };
+                msg.onerror = () => {
+                    count++;
+                    speakLoop();
+                };
                 window.speechSynthesis.speak(msg);
             } else {
-                renderScripture();
-                document.getElementById('gate-scripture').classList.remove('hidden');
-                startScriptureRecognition();
+                if(callback) callback();
             }
         };
-        
+
         if (speechSynthesis.getVoices().length === 0) {
             window.speechSynthesis.onvoiceschanged = speakLoop;
         } else {
             speakLoop();
         }
+    }
+
+    function playScriptureSequence() {
+        renderScripture();
+        document.getElementById('gate-scripture').classList.remove('hidden');
+        startScriptureRecognition();
     }
 
     function renderScripture() {
@@ -381,29 +448,49 @@
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if(!SpeechRecognition) { document.getElementById('btnNextScripture').disabled = false; return; }
         
-        if(recognition) recognition.stop();
+        if(recognition) {
+            try { recognition.stop(); } catch(e){}
+        }
+        
         recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
 
         recognition.onresult = (event) => {
             let t = ""; 
-            for (let i = event.resultIndex; i < event.results.length; ++i) t += event.results[i][0].transcript.toLowerCase();
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                t += event.results[i][0].transcript.toLowerCase();
+            }
             document.getElementById('sVoiceStatus').innerText = t;
             
-            const words = scriptures[currentScriptureIdx].text.toLowerCase().split(/\W+/).filter(w => w.length > 2);
+            // Clean string to avoid punctuation mismatch
+            const cleanText = scriptures[currentScriptureIdx].text.toLowerCase().replace(/[^\w\s]/gi, '');
+            const words = cleanText.split(/\s+/).filter(w => w.length > 1);
+            
             words.forEach(w => { if(t.includes(w)) scriptureWordsSet.add(w); });
             
             const pct = Math.min(100, Math.round((scriptureWordsSet.size / words.length) * 100));
             document.getElementById('scriptureBar').style.width = pct + "%";
-            if (pct >= 70) document.getElementById('btnNextScripture').disabled = false;
-        };
-        recognition.onend = () => { 
-            if(document.getElementById('btnNextScripture').disabled && !document.getElementById('gate-scripture').classList.contains('hidden')) {
-                recognition.start(); 
+            
+            // Unlocks button easily once 35% or more words are spoken correctly
+            if (pct >= 35 || scriptureWordsSet.size >= 4) {
+                document.getElementById('btnNextScripture').disabled = false;
             }
         };
-        try { recognition.start(); } catch(e){}
+
+        recognition.onerror = () => {
+            document.getElementById('btnNextScripture').disabled = false;
+        };
+
+        recognition.onend = () => { 
+            if(document.getElementById('btnNextScripture').disabled && !document.getElementById('gate-scripture').classList.contains('hidden')) {
+                try { recognition.start(); } catch(e){}
+            }
+        };
+        
+        try { recognition.start(); } catch(e){
+            document.getElementById('btnNextScripture').disabled = false;
+        }
     }
 
     window.nextScripture = () => {
@@ -412,7 +499,9 @@
             renderScripture();
             startScriptureRecognition();
         } else {
-            if(recognition) recognition.stop();
+            if(recognition) {
+                try { recognition.stop(); } catch(e){}
+            }
             document.getElementById('gate-scripture').classList.add('hidden');
             showVideoGate();
         }
@@ -427,13 +516,19 @@
     };
 
     function showVideoGate() {
+        maxTimeWatched = 0;
         document.getElementById('gate-video').classList.remove('hidden');
-        const video = document.getElementById('salvationVideo');
-        video.onended = () => {
-            document.getElementById('btnProceedToPrayer').disabled = false;
-            document.getElementById('videoStatus').innerText = "Video complete. You may now proceed.";
-        };
+        document.getElementById('salvationVideo').currentTime = 0;
     }
+
+    window.handleBeliefChoice = (believes) => {
+        if (believes) {
+            showPrayerGate();
+        } else {
+            alert("Redirecting to the main page.");
+            window.location.reload();
+        }
+    };
 
     window.showPrayerGate = () => {
         document.getElementById('gate-video').classList.add('hidden');
@@ -449,7 +544,8 @@
         recognition.continuous = true;
         recognition.interimResults = true;
 
-        const words = document.getElementById('prayerText').innerText.toLowerCase().split(/\W+/).filter(w => w.length > 2);
+        const cleanPrayer = document.getElementById('prayerText').innerText.toLowerCase().replace(/[^\w\s]/gi, '');
+        const words = cleanPrayer.split(/\s+/).filter(w => w.length > 1);
 
         recognition.onresult = (event) => {
             let t = ""; 
@@ -461,21 +557,30 @@
             const pct = Math.min(100, Math.round((prayerWordsSet.size / words.length) * 100));
             document.getElementById('voiceBar').style.width = pct + "%";
             
-            if (pct >= 100 || t.includes("thank you jesus for saving me")) {
+            if (pct >= 50 || t.includes("thank you jesus") || t.includes("saving me")) {
                 document.getElementById('btnAmen').disabled = false;
             }
         };
         
+        recognition.onerror = () => {
+            document.getElementById('btnAmen').disabled = false;
+        };
+
         recognition.onend = () => { 
             if(document.getElementById('btnAmen').disabled && !document.getElementById('gate-prayer').classList.contains('hidden')) {
-                recognition.start(); 
+                try { recognition.start(); } catch(e){}
             }
         };
-        try { recognition.start(); } catch(e){}
+        
+        try { recognition.start(); } catch(e){
+            document.getElementById('btnAmen').disabled = false;
+        }
     }
 
     window.showForm = () => { 
-        if(recognition) recognition.stop(); 
+        if(recognition) {
+            try { recognition.stop(); } catch(e){}
+        } 
         document.getElementById('gate-prayer').classList.add('hidden'); 
         document.getElementById('wait-msg').classList.add('hidden'); 
         document.getElementById('form-container').classList.remove('hidden'); 
@@ -523,7 +628,7 @@
             document.getElementById('admin-login').classList.add('hidden'); 
             document.getElementById('admin-dash').classList.remove('hidden');
             startLiveDashboard();
-            window.loadActiveVideo(); // Ensure video preview loads on dashboard unlock
+            window.loadActiveVideo();
         } catch(e) { alert("Access Denied"); }
     };
 
@@ -598,7 +703,37 @@
         });
     }
 
-    // Upload function with immediate local and Firestore preview sync
+    window.saveVideoUrl = async () => {
+        const url = document.getElementById('adminVideoUrl').value;
+        if(!url) return alert("Please enter a valid video streaming URL.");
+        
+        await setDoc(doc(db, "config", "video"), { url: url });
+        
+        const videoSource = document.getElementById('videoSource');
+        const salvationVideo = document.getElementById('salvationVideo');
+        if (videoSource && salvationVideo) {
+            videoSource.src = url;
+            salvationVideo.load();
+        }
+        updateAdminPreview(url);
+        alert("Video stream URL updated and published successfully!");
+    };
+
+    window.deleteActiveVideo = async () => {
+        if(!confirm("Are you sure you want to delete the current active video?")) return;
+        await setDoc(doc(db, "config", "video"), { url: "" });
+        
+        const videoSource = document.getElementById('videoSource');
+        const salvationVideo = document.getElementById('salvationVideo');
+        if (videoSource && salvationVideo) {
+            videoSource.src = "";
+            salvationVideo.load();
+        }
+        document.getElementById('adminPreviewContainer').classList.add('hidden');
+        document.getElementById('currentVideoTitle').innerText = "No active video set.";
+        alert("Active video deleted.");
+    };
+
     window.uploadVideoFile = async () => {
         const fileInput = document.getElementById('adminVideoFile');
         const file = fileInput.files[0];
@@ -631,10 +766,8 @@
                 const response = JSON.parse(xhr.responseText);
                 const downloadURL = response.secure_url;
 
-                // Save published URL to Firestore
                 await setDoc(doc(db, "config", "video"), { url: downloadURL });
 
-                // Update user video player
                 const videoSource = document.getElementById('videoSource');
                 const salvationVideo = document.getElementById('salvationVideo');
                 if (videoSource && salvationVideo) {
@@ -642,9 +775,7 @@
                     salvationVideo.load();
                 }
 
-                // Update admin video preview
                 updateAdminPreview(downloadURL);
-
                 document.getElementById('uploadStatus').innerText = "Video successfully uploaded and published globally!";
             } else {
                 alert("Upload failed. Check your Cloudinary Cloud Name and Preset.");
