@@ -1,817 +1,824 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Great Commission | Harvest Portal</title>
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <style>
-        :root { 
-            --gold: #f1c40f; --emerald: #27ae60; --dark: #0f172a; 
-            --glass-heavy: rgba(15, 23, 42, 0.95);
-            --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            --danger: #e74c3c;
-        }
-
-        body, html { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: var(--dark); color: white; overflow-x: hidden; scroll-behavior: smooth; }
-
-        .hero {
-            height: 100vh;
-            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1438232992991-995b7058bbb3?q=80&w=2000');
-            background-attachment: fixed; background-size: cover;
-            display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
-        }
-        .hero h1 { font-family: 'Cinzel', serif; font-size: clamp(2rem, 8vw, 4rem); color: var(--gold); margin-bottom: 10px; }
-
-        .map-frame {
-            border: 4px solid var(--gold);
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-            margin: 20px auto;
-            width: 95%;
-            max-width: 1400px;
-        }
-
-        #map { height: 65vh; width: 100%; filter: contrast(1.1); }
-        .main-container { padding: 40px 20px; max-width: 1100px; margin: 0 auto 100px; position: relative; z-index: 100; }
-        .card { background: var(--glass-heavy); backdrop-filter: blur(20px); border-radius: 28px; padding: clamp(20px, 5vw, 40px); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 30px 60px rgba(0,0,0,0.6); }
-
-        input, select { width: 100%; padding: 15px; margin-bottom: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: white; font-size: 1.1rem; box-sizing: border-box; }
-        .btn { padding: 16px 32px; border: none; border-radius: 12px; cursor: pointer; font-weight: 800; text-transform: uppercase; transition: var(--transition); display: inline-block; width: 100%; margin-bottom: 10px; }
-        .btn-gold { background: var(--gold); color: var(--dark); box-shadow: 0 10px 20px rgba(241, 196, 15, 0.3); }
-        .btn-gold:disabled { background: #334155; color: #64748b; cursor: not-allowed; opacity: 0.6; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-success { background: var(--emerald); color: white; }
-
-        .crud-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 0.85rem; background: rgba(0,0,0,0.2); border-radius: 15px; overflow: hidden; }
-        .crud-table th, .crud-table td { padding: 15px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .crud-table th { background: rgba(255,255,255,0.05); color: var(--gold); }
-
-        .overlay-gate { position: fixed; inset: 0; background: var(--dark); z-index: 2000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; overflow-y: auto; }
-        
-        .prayer-scroll { 
-            width: 100%; background: rgba(0,0,0,0.5); border-radius: 20px; 
-            padding: clamp(20px, 4vw, 30px); margin: 20px 0; 
-            border-left: 8px solid var(--gold); line-height: 1.5; 
-            font-size: clamp(1.1rem, 3.5vw, 1.8rem); text-align: left;
-            box-sizing: border-box; cursor: pointer;
-        }
-
-        .meter-wrap { width: 100%; height: 14px; background: rgba(255,255,255,0.05); border-radius: 20px; margin: 15px 0; overflow: hidden; }
-        .meter-bar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--gold), var(--emerald)); transition: width 0.3s ease; }
-
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
-        .stat-card { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 18px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
-        .stat-val { font-size: 2rem; color: var(--gold); font-weight: 800; display: block; }
-        
-        .scripture-controls { display: flex; gap: 15px; margin-top: 20px; width: 100%; max-width: 500px; }
-        .scripture-highlight { color: var(--gold); font-weight: bold; }
-
-        .hidden { display: none !important; }
-        .pulse-marker { width: 18px; height: 18px; background: var(--gold); border: 2px solid #fff; border-radius: 50%; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(241, 196, 15, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(241, 196, 15, 0); } 100% { box-shadow: 0 0 0 0 rgba(241, 196, 15, 0); } }
-        
-        video { max-width: 100%; border-radius: 16px; border: 2px solid var(--gold); }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>The Great Commission | Harvest Portal</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--gold:#f1c40f;--emerald:#27ae60;--dark:#0f172a;--glass:rgba(15,23,42,.95);--danger:#e74c3c;--blue:#3b82f6;--fs:16px;--tr:all .3s cubic-bezier(.175,.885,.32,1.275)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:var(--fs)}
+body,html{margin:0;padding:0;font-family:'Inter',sans-serif;background:var(--dark);color:#fff;overflow-x:hidden;scroll-behavior:smooth}
+.hidden{display:none!important}
+.muted{color:#94a3b8}
+.toolbar{position:fixed;top:0;left:0;right:0;z-index:1500;display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:8px 12px;background:rgba(2,6,23,.55);backdrop-filter:blur(10px);flex-wrap:wrap}
+.toolbar select,.toolbar button{width:auto;margin:0;padding:6px 10px;font-size:.75rem;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;cursor:pointer}
+.toolbar select option{color:#000}
+.hero{min-height:100vh;background:linear-gradient(rgba(0,0,0,.72),rgba(0,0,0,.72)),url('https://images.unsplash.com/photo-1438232992991-995b7058bbb3?q=80&w=2000');background-attachment:fixed;background-size:cover;background-position:center;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:70px 20px 30px}
+.hero h1{font-family:'Cinzel',serif;font-size:clamp(2rem,8vw,4.2rem);color:var(--gold);margin:0 0 10px}
+.hero .sub{letter-spacing:3px;font-size:clamp(.7rem,2.4vw,1rem)}
+.map-frame{border:4px solid var(--gold);border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.8);margin:20px auto;width:95%;max-width:1400px}
+#map{height:60vh;min-height:280px;width:100%}
+.main-container{padding:30px 16px;max-width:1200px;margin:0 auto 100px;position:relative;z-index:100}
+.card{background:var(--glass);backdrop-filter:blur(20px);border-radius:28px;padding:clamp(16px,4vw,40px);border:1px solid rgba(255,255,255,.15);box-shadow:0 30px 60px rgba(0,0,0,.6)}
+.sub-card{background:rgba(255,255,255,.04);padding:clamp(14px,3vw,22px);border-radius:18px;margin-bottom:18px;border:1px solid rgba(255,255,255,.06)}
+h2,h3,h4{margin-top:0}
+.gold{color:var(--gold)}
+input,select,textarea{width:100%;padding:13px;margin-bottom:10px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;font-size:1rem;font-family:inherit}
+select option{color:#000}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(241,196,15,.2)}
+textarea{min-height:110px;resize:vertical}
+.btn{padding:14px 26px;border:none;border-radius:12px;cursor:pointer;font-weight:800;text-transform:uppercase;font-size:.78rem;letter-spacing:.06em;transition:var(--tr);display:inline-block;width:100%;margin-bottom:10px;color:#fff;background:rgba(255,255,255,.1)}
+.btn:hover:not(:disabled){transform:translateY(-2px)}
+.btn-gold{background:var(--gold);color:var(--dark);box-shadow:0 10px 20px rgba(241,196,15,.3)}
+.btn:disabled{background:#334155;color:#64748b;cursor:not-allowed;opacity:.6;box-shadow:none}
+.btn-danger{background:var(--danger)}.btn-success{background:var(--emerald)}.btn-blue{background:var(--blue)}
+.btn-auto{width:auto}.btn-sm{padding:8px 14px;font-size:.68rem;margin:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>*{flex:1 1 140px}
+.row.nogrow>*{flex:0 0 auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:640px){.grid2{grid-template-columns:1fr}}
+.overlay-gate{position:fixed;inset:0;background:radial-gradient(circle at top,#1e293b,#020617);z-index:2000;display:flex;flex-direction:column;align-items:center;padding:60px 16px 24px;overflow-y:auto}
+.gate-in{max-width:900px;width:100%;text-align:center;margin:auto}
+.gate-in h2{font-family:'Cinzel',serif;color:var(--gold);font-size:clamp(1.6rem,5vw,2.5rem)}
+.prayer-scroll{width:100%;background:rgba(0,0,0,.5);border-radius:20px;padding:clamp(16px,4vw,30px);margin:16px 0;border-left:8px solid var(--gold);line-height:1.7;font-size:clamp(1.05rem,3.4vw,1.7rem);text-align:left;font-family:Georgia,serif}
+.word{display:inline-block;padding:0 .1em;border-radius:.3em;color:rgba(255,255,255,.35);transition:color .2s,background .2s}
+.word.done{color:#fff;text-shadow:0 0 12px rgba(241,196,15,.5)}
+.word.cur{background:var(--gold);color:#111;cursor:pointer;animation:blink 1s infinite}
+@keyframes blink{50%{box-shadow:0 0 0 6px rgba(241,196,15,.3)}}
+.meter-wrap{width:100%;height:14px;background:rgba(255,255,255,.07);border-radius:20px;margin:12px 0;overflow:hidden}
+.meter-bar{width:0;height:100%;background:linear-gradient(90deg,var(--gold),var(--emerald));transition:width .3s}
+.status{color:var(--gold);font-style:italic;min-height:1.4em;margin-bottom:12px;font-size:.9rem;word-break:break-word}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;justify-content:center;flex-wrap:wrap}
+.chip{padding:8px 14px;border-radius:99px;border:1px solid rgba(255,255,255,.2);font-size:.72rem;font-weight:700;cursor:pointer;background:transparent;color:#cbd5e1;white-space:nowrap;width:auto;margin:0}
+.chip.on{background:var(--gold);color:#111;border-color:var(--gold)}
+.chip.ok::after{content:' ✓'}
+.mic{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--danger);animation:pulse 1.2s infinite;vertical-align:middle;margin-right:6px}
+.pulse-marker{width:18px;height:18px;background:var(--gold);border:2px solid #fff;border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(241,196,15,.7)}70%{box-shadow:0 0 0 15px rgba(241,196,15,0)}100%{box-shadow:0 0 0 0 rgba(241,196,15,0)}}
+.lord-h{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(2.6rem,12vw,8.5rem);line-height:1;margin:10px 0;background:linear-gradient(90deg,#fde68a,var(--gold),#fff,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;animation:rise 1.2s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(30px) scale(.92)}to{opacity:1;transform:none}}
+.pips{display:flex;gap:10px;justify-content:center;margin:20px 0}
+.pip{width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,.15);transition:.3s}.pip.on{background:var(--gold);box-shadow:0 0 14px var(--gold);transform:scale(1.2)}
+video{max-width:100%;width:100%;border-radius:16px;border:2px solid var(--gold);background:#000}
+.vwrap{aspect-ratio:16/9;width:100%;border-radius:16px;overflow:hidden;border:2px solid var(--gold);background:#000}.vwrap iframe,.vwrap video{width:100%;height:100%;border:0;border-radius:0}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,.1)}
+.tab{padding:10px 16px;border-radius:10px;font-size:.72rem;font-weight:800;text-transform:uppercase;border:1px solid transparent;background:transparent;color:#94a3b8;cursor:pointer;white-space:nowrap;width:auto;margin:0}
+.tab.on{background:var(--gold);color:#111}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:22px}
+.stat-card{background:rgba(255,255,255,.04);padding:16px;border-radius:16px;text-align:center;border:1px solid rgba(255,255,255,.06);font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8}
+.stat-val{font-size:1.9rem;color:var(--gold);font-weight:800;display:block;letter-spacing:0}
+.tbl-wrap{overflow-x:auto}
+.crud-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.82rem;background:rgba(0,0,0,.2);border-radius:14px;overflow:hidden}
+.crud-table th,.crud-table td{padding:11px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+.crud-table th{background:rgba(255,255,255,.05);color:var(--gold);font-size:.7rem;text-transform:uppercase;letter-spacing:.1em}
+.crud-table tr.click{cursor:pointer}.crud-table tr.click:hover{background:rgba(255,255,255,.05)}
+.link{background:none;border:0;color:#60a5fa;cursor:pointer;font-weight:700;font-size:.72rem;text-transform:uppercase;width:auto;margin:0 8px 0 0;padding:0}.link.red{color:#f87171}
+.admin-map{height:340px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.15);margin-bottom:8px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:3000;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
+.modal .card{max-width:520px;width:100%;max-height:92vh;overflow-y:auto}
+.err{color:#f87171;font-size:.72rem;font-weight:700;text-transform:uppercase;display:block;margin:-6px 0 8px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:5000;padding:12px 20px;border-radius:12px;font-weight:700;font-size:.85rem;max-width:92vw;box-shadow:0 20px 40px rgba(0,0,0,.6)}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:4000}
+.pastor-pin{font-size:20px;filter:drop-shadow(0 0 6px var(--gold));text-align:center}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.68rem;color:#94a3b8;margin-bottom:10px}.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px}
+.chartbox{position:relative;height:240px}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media print{
+ body{background:#fff!important;color:#000!important}
+ .toolbar,.hero,.map-frame,.tabs,.btn,.link,.overlay-gate,.noprint,#user-section{display:none!important}
+ .card,.sub-card,.stat-card{background:#fff!important;color:#000!important;border:1px solid #ccc!important;box-shadow:none!important}
+ .stat-val,.gold,.crud-table th{color:#000!important}.tab-panel{display:none!important}#tab-reports{display:block!important}
+}
+</style>
 </head>
 <body>
 
+<div class="toolbar noprint">
+  <select id="langSel" aria-label="Voice recognition accent">
+    <option value="en-US">English (US)</option><option value="en-GB">English (UK)</option><option value="en-KE">English (Kenya)</option>
+    <option value="en-NG">English (Nigeria)</option><option value="en-ZA">English (S. Africa)</option><option value="en-IN">English (India)</option><option value="en-AU">English (Australia)</option>
+  </select>
+  <button onclick="fontStep(-1)" aria-label="Smaller text">A-</button>
+  <button onclick="fontStep(1)" aria-label="Larger text">A+</button>
+</div>
+
 <section id="entrance" class="hero">
-    <div>
-        <h1 style="font-family: 'Cinzel';">The Great Commission</h1>
-        <p style="letter-spacing: 3px;">HARVESTING SOULS FOR THE KINGDOM</p>
-        <button class="btn btn-gold" style="width: 280px; margin-top: 40px;" onclick="startJourney()">Begin Journey</button>
-    </div>
+  <div>
+    <h1>The Great Commission</h1>
+    <p class="sub">HARVESTING SOULS FOR THE KINGDOM</p>
+    <p class="muted" style="max-width:520px;margin:20px auto 0">Read the Word aloud, watch the message of salvation, and confess Jesus as Lord with your own mouth.</p>
+    <button id="btnBegin" class="btn btn-gold" style="width:min(300px,90%);margin-top:34px" onclick="startJourney()">Begin Journey</button>
+    <p id="geoMsg" style="color:#fcd34d;font-size:.82rem;margin-top:6px"></p>
+  </div>
 </section>
 
-<!-- Gate 1: Scriptures Carousel -->
+<!-- JESUS IS LORD -->
+<div id="gate-lord" class="overlay-gate hidden" style="justify-content:center">
+  <div class="gate-in">
+    <p id="lordPlace" class="gold" style="letter-spacing:.3em;text-transform:uppercase;font-size:.8rem"></p>
+    <div class="lord-h">JESUS<br>IS LORD</div>
+    <div class="pips" id="lordPips"></div>
+    <p class="muted" style="font-size:1.05rem">Every knee shall bow, and every tongue confess that Jesus Christ is Lord. <span class="gold">Philippians 2:10–11</span></p>
+    <button class="btn btn-gold btn-auto" style="margin-top:20px" onclick="skipLord()">Continue →</button>
+  </div>
+</div>
+
+<!-- Gate 1: Scriptures -->
 <div id="gate-scripture" class="overlay-gate hidden">
-    <div style="max-width: 800px; text-align: center; width: 100%;">
-        <h2 style="font-family: 'Cinzel'; color: var(--gold); font-size: 2.5rem;">Salvation Scriptures</h2>
-        <div class="meter-wrap"><div id="scriptureBar" class="meter-bar"></div></div>
-        <div class="prayer-scroll" id="scriptureText" title="Tap text to bypass voice requirement if mic fails"></div>
-        <div id="sVoiceStatus" style="color: var(--gold); margin-bottom: 15px; font-style: italic;">Read scripture aloud to demonstrate manifestation (or tap box to unlock)...</div>
-        <div class="scripture-controls">
-            <button class="btn" style="background: rgba(255,255,255,0.1); color: white;" onclick="prevScripture()">Previous</button>
-            <button class="btn btn-gold" id="btnNextScripture" disabled onclick="nextScripture()">Next Scripture</button>
-        </div>
+  <div class="gate-in">
+    <h2>Salvation Scriptures</h2>
+    <div class="chips" id="pathChips"></div>
+    <p id="sCat" class="muted" style="margin:10px 0 0;font-size:.8rem;text-transform:uppercase;letter-spacing:.15em"></p>
+    <div class="meter-wrap"><div id="scriptureBar" class="meter-bar"></div></div>
+    <div class="prayer-scroll" id="scriptureText" title="Say each word aloud"></div>
+    <p id="sRef" class="gold" style="font-family:monospace;margin:0 0 8px"></p>
+    <div id="sVoiceStatus" class="status">Press Speak and read every word aloud…</div>
+    <div class="row" style="margin-bottom:10px">
+      <button id="sSpeak" class="btn btn-gold" onclick="toggleSpeakScripture()">🎤 Speak</button>
+      <button class="btn" onclick="hearScripture()">🔊 Hear it</button>
+      <button class="btn" onclick="resetScripture()">↺ Restart verse</button>
     </div>
+    <p id="sNoSpeech" class="status hidden">Voice recognition isn't available here. Read each word aloud and tap the glowing word.</p>
+    <div class="row">
+      <button class="btn" onclick="prevScripture()">← Previous</button>
+      <span id="sCount" class="muted"></span>
+      <button class="btn btn-gold" id="btnNextScripture" disabled onclick="nextScripture()">Next →</button>
+    </div>
+  </div>
 </div>
 
-<!-- Gate 2: Mandatory Salvation Video -->
+<!-- Gate 2: Video -->
 <div id="gate-video" class="overlay-gate hidden">
-    <div style="max-width: 800px; text-align: center; width: 100%;">
-        <h2 style="font-family: 'Cinzel'; color: var(--gold); font-size: 2rem; margin-bottom: 20px;">Watch Message of Salvation</h2>
-        <video id="salvationVideo" controls controlsList="nodownload no play">
-            <source id="videoSource" src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4">
-            Your browser does not support video play.
-        </video>
-        <p id="videoStatus" style="color: #64748b; margin-top: 10px;">Please watch the full video to unlock the decision prompt.</p>
-        
-        <div id="beliefChoice" class="hidden" style="margin-top: 20px;">
-            <h3 style="color: var(--gold);">Do you believe in the Gospel message of Jesus Christ?</h3>
-            <div style="display: flex; gap: 15px; max-width: 400px; margin: 0 auto;">
-                <button class="btn btn-success" onclick="handleBeliefChoice(true)">I Believe</button>
-                <button class="btn btn-danger" onclick="handleBeliefChoice(false)">I Do Not Believe</button>
-            </div>
-        </div>
+  <div class="gate-in">
+    <h2>Watch the Message of Salvation</h2>
+    <div class="chips" id="videoChips"></div>
+    <div class="vwrap" style="margin-top:14px" id="videoHolder"></div>
+    <p id="videoTitle" style="font-weight:700;margin:12px 0 2px"></p>
+    <p id="videoStatus" class="muted" style="font-size:.85rem">Please watch to the end to unlock the next step. Skipping ahead isn't possible.</p>
+    <div id="beliefChoice" class="hidden" style="margin-top:20px">
+      <h3 class="gold">Do you believe in the Gospel of Jesus Christ?</h3>
+      <div class="row" style="max-width:480px;margin:0 auto">
+        <button class="btn btn-success" onclick="handleBeliefChoice(true)">I Believe</button>
+        <button class="btn btn-danger" onclick="handleBeliefChoice(false)">I Do Not Believe</button>
+      </div>
     </div>
+    <div id="unbelief" class="hidden sub-card" style="margin-top:16px">
+      <p>That's okay, and thank you for being honest. God welcomes every honest question. You are free to watch again, or leave and return whenever you are ready.</p>
+      <div class="row"><button class="btn" onclick="rewatch()">Watch again</button><button class="btn" onclick="location.reload()">Leave</button></div>
+    </div>
+  </div>
 </div>
 
-<!-- Gate 3: Mandatory Salvation Prayer -->
+<!-- Gate 3: Prayer -->
 <div id="gate-prayer" class="overlay-gate hidden">
-    <div style="max-width: 900px; text-align: center; width: 100%;">
-        <h2 style="font-family: 'Cinzel'; color: var(--gold); font-size: 2.5rem;">The Prayer of Salvation</h2>
-        <div class="meter-wrap"><div id="voiceBar" class="meter-bar"></div></div>
-        <div class="prayer-scroll" id="prayerText" title="Tap text to bypass voice requirement if mic fails">
-            Lord Jesus, I come to You today. I acknowledge that I am a sinner. I believe You died for my sins and rose again on the third day. 
-            I repent and turn from my old ways. Wash me clean with Your precious blood. Fill me with Your Holy Spirit. 
-            From today, You are my Lord and Savior. I am now a child of God. Thank You Jesus for saving me! Amen.
-        </div>
-        <div id="vStatus" style="color: var(--gold); margin-bottom: 15px; font-style: italic;">Read prayer aloud to reach 100% manifestation...</div>
-        <button id="btnAmen" class="btn btn-gold" disabled onclick="showForm()">Manifested - Proceed to Registration</button>
+  <div class="gate-in">
+    <h2>The Prayer of Salvation</h2>
+    <p class="muted" style="font-size:.8rem">Romans 10:9–10 — speak every word aloud from your heart</p>
+    <div class="meter-wrap"><div id="voiceBar" class="meter-bar"></div></div>
+    <div class="prayer-scroll" id="prayerText"></div>
+    <div id="vStatus" class="status">Press Speak and pray aloud…</div>
+    <div class="row">
+      <button id="pSpeak" class="btn btn-gold" onclick="toggleSpeakPrayer()">🎤 Speak the Prayer</button>
+      <button class="btn" onclick="hearPrayer()">🔊 Hear it first</button>
+      <button class="btn" onclick="resetPrayer()">↺ Restart</button>
     </div>
+    <button id="btnAmen" class="btn btn-gold" disabled onclick="showForm()">Amen — Proceed to Registration</button>
+  </div>
 </div>
 
-<!-- Global Frame Map View -->
-<div class="map-frame">
-    <div id="map"></div>
+<!-- Gate 4: Registration -->
+<div id="gate-form" class="overlay-gate hidden">
+  <div class="gate-in" style="max-width:760px">
+    <h2>Register Your Soul</h2>
+    <p class="muted" style="font-size:.85rem">Your details go to a pastor near you who will pray with you.</p>
+    <div class="card" style="text-align:left">
+      <input type="text" id="uName" placeholder="Full name" autocomplete="name"><span id="eName" class="err hidden"></span>
+      <div class="grid2">
+        <div><input type="tel" id="uPhone" placeholder="WhatsApp / Phone (+254…)" autocomplete="tel"><span id="ePhone" class="err hidden"></span></div>
+        <div><input type="email" id="uEmail" placeholder="Email (optional)" autocomplete="email"><span id="eEmail" class="err hidden"></span></div>
+      </div>
+      <input type="text" id="uLoc" placeholder="City / Country (auto-detected)" onchange="geocodeSeeker()">
+      <div id="formMap" class="admin-map" style="height:260px"></div>
+      <p class="muted" style="font-size:.72rem;margin:0 0 10px">Drag the pin or tap the map if it isn't exactly where you are.</p>
+      <button class="btn btn-auto btn-sm" onclick="autoDetectLocation(true)" style="margin-bottom:14px">📍 Re-detect my location</button>
+      <label style="display:flex;gap:10px;font-size:.8rem;color:#cbd5e1;margin-bottom:16px;cursor:pointer"><input type="checkbox" id="uConsent" style="width:22px;height:22px;margin:0;flex:none"> I agree that a pastor or counselor may contact me and that my details be stored securely for this purpose.</label>
+      <button id="btnSubmit" class="btn btn-gold" onclick="submitToKingdom()">Submit to the Book of Life</button>
+    </div>
+  </div>
 </div>
+
+<!-- Gate 5: Congratulations -->
+<div id="gate-done" class="overlay-gate hidden">
+  <div class="gate-in" style="max-width:640px">
+    <div class="card">
+      <div style="font-size:4rem">🎉</div>
+      <h2 id="doneTitle" style="margin-bottom:4px"></h2>
+      <p class="gold" style="letter-spacing:.2em;text-transform:uppercase;font-size:.78rem;font-weight:800">You are now a child of God</p>
+      <p id="feedbackText" style="font-size:1.1rem;line-height:1.7"></p>
+      <div id="donePastor" class="sub-card" style="text-align:left"></div>
+      <div class="sub-card" style="text-align:left;font-size:.88rem;line-height:1.9">
+        <b class="gold">Your next steps</b><br>📖 Read a chapter of John every day<br>🙏 Pray daily, speaking with your Father<br>⛪ Join a Bible-believing church<br>💧 Ask your pastor about water baptism<br>📣 Tell someone what Jesus did for you
+      </div>
+      <div class="row" style="margin-bottom:10px">
+        <button class="btn btn-gold btn-sm" onclick="downloadCertificate()">🏅 Certificate</button>
+        <button class="btn btn-sm" onclick="nativeShare()">Share</button>
+        <a class="btn btn-sm btn-success" id="shWA" target="_blank" rel="noopener" style="text-decoration:none;text-align:center">WhatsApp</a>
+        <a class="btn btn-sm" id="shTG" target="_blank" rel="noopener" style="text-decoration:none;text-align:center">Telegram</a>
+        <a class="btn btn-sm" id="shX" target="_blank" rel="noopener" style="text-decoration:none;text-align:center">X</a>
+        <a class="btn btn-sm" id="shFB" target="_blank" rel="noopener" style="text-decoration:none;text-align:center">Facebook</a>
+        <button class="btn btn-sm" onclick="copyShare()">Copy link</button>
+      </div>
+      <button class="btn btn-gold" onclick="resetToHome()">Amen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Global map -->
+<div class="map-frame"><div id="map"></div></div>
 
 <div class="main-container">
-    <div id="user-section" class="card">
-        <div id="form-container" class="hidden">
-            <h2 style="color: var(--gold); margin-top:0;">Register Your Soul</h2>
-            <input type="text" id="uName" placeholder="Full Name">
-            <input type="tel" id="uPhone" placeholder="WhatsApp / Phone Number">
-            <button class="btn btn-gold" onclick="submitToKingdom()">Submit to the Book of Life</button>
+  <div id="user-section" class="card" style="text-align:center">
+    <p class="muted">Waiting for the move of the Spirit…</p>
+    <a href="#" onclick="toggleAdmin(true);return false" style="color:#64748b;font-size:.8rem;text-decoration:none">Administrator Access</a>
+  </div>
+
+  <div id="admin-section" class="card hidden">
+    <form id="admin-login" onsubmit="doAdminLogin();return false">
+      <h2 class="gold">Mission Control</h2>
+      <input type="email" id="aEmail" placeholder="Email address" autocomplete="username">
+      <input type="password" id="aPass" placeholder="Access key" autocomplete="current-password">
+      <button class="btn btn-gold">Unlock Dashboard</button>
+      <button type="button" class="btn" onclick="forgotPassword()">Forgot password?</button>
+      <button type="button" class="btn" onclick="toggleAdmin(false)">Cancel</button>
+    </form>
+
+    <div id="admin-dash" class="hidden">
+      <h2 id="dash-title" class="gold">Kingdom Dashboard</h2>
+      <button class="btn btn-sm btn-auto noprint" style="margin-bottom:14px" onclick="changePw()">🔑 Change my password</button>
+      <div class="sub-card noprint">
+        <div class="row">
+          <button class="chip" onclick="setRange('today')" data-r="today">Today</button>
+          <button class="chip" onclick="setRange('7')" data-r="7">7 days</button>
+          <button class="chip" onclick="setRange('30')" data-r="30">30 days</button>
+          <button class="chip on" onclick="setRange('all')" data-r="all">All time</button>
+          <input type="date" id="fFrom" style="margin:0" onchange="setRange('custom')" aria-label="From date">
+          <input type="date" id="fTo" style="margin:0" onchange="setRange('custom')" aria-label="To date">
+          <input type="text" id="fRegion" placeholder="Region filter" style="margin:0" oninput="applyFilters()">
+          <select id="fStatus" style="margin:0" onchange="applyFilters()"><option value="">All statuses</option></select>
         </div>
-        <div id="thank-you-msg" class="hidden" style="text-align:center;">
-            <h2 style="color: var(--gold);">Hallelujah!</h2>
-            <p id="feedbackText" style="font-size: 1.3rem; line-height: 1.6;"></p>
-            <button class="btn btn-gold" style="width: auto; margin-top: 20px;" onclick="resetToHome()">Amen</button>
+      </div>
+      <div class="tabs noprint" id="tabBar"></div>
+
+      <!-- Overview -->
+      <div id="tab-overview" class="tab-panel">
+        <div class="stats-grid" id="kpis"></div>
+        <div class="legend" id="mapLegend"></div>
+        <p class="muted noprint" style="font-size:.78rem">The global map above shows every soul in the current filter. Tap a cluster to zoom, tap a pin for details. <a href="#map" style="color:var(--gold)">Jump to map ↑</a></p>
+        <div class="grid2">
+          <div class="sub-card"><h4 class="gold">Souls by region</h4><div class="chartbox"><canvas id="cRegion"></canvas></div></div>
+          <div class="sub-card"><h4 class="gold">Last 14 days</h4><div class="chartbox"><canvas id="cDaily"></canvas></div></div>
         </div>
-        <div id="wait-msg" style="text-align:center;"><p>Waiting for the move of the Spirit...</p></div>
-        <div style="text-align: center; margin-top: 30px;">
-            <a href="#" onclick="toggleAdmin(true)" style="color: #64748b; font-size: 0.8rem; text-decoration: none;">Administrator Access</a>
+        <div class="grid2">
+          <div class="sub-card"><h4 class="gold">Follow-up pipeline</h4><div class="chartbox"><canvas id="cStatus"></canvas></div></div>
+          <div class="sub-card"><h4 class="gold">Peak hours (your local time)</h4><div class="chartbox"><canvas id="cHours"></canvas></div></div>
         </div>
+      </div>
+
+      <!-- Souls -->
+      <div id="tab-souls" class="tab-panel hidden">
+        <div class="row noprint"><input id="soulSearch" placeholder="Search name, phone, region, pastor…" oninput="renderSouls()" style="margin:0"><button class="btn btn-success btn-sm" onclick="exportCSV()">Export CSV</button></div>
+        <div class="tbl-wrap"><table class="crud-table"><thead><tr><th>Name</th><th>Region</th><th>Contact</th><th>Pastor</th><th>Status</th><th>Date</th></tr></thead><tbody id="soulBody"></tbody></table></div>
+      </div>
+
+      <!-- Pastors -->
+      <div id="tab-pastors" class="tab-panel hidden">
+        <div class="sub-card">
+          <h3 class="gold" id="pFormTitle">Register Pastor by Region</h3>
+          <div class="grid2"><input id="pName" placeholder="Pastor name"><input id="pChurch" placeholder="Church / ministry (optional)"><input id="pEmail" type="email" placeholder="Login email (must match their account)"><input id="pPhone" type="tel" placeholder="WhatsApp, international (+254712345678)"></div>
+          <div class="row nogrow" style="margin-bottom:10px"><input id="pReg" placeholder="Type region name e.g. Nakuru, Kenya — auto-detects on map" style="flex:1 1 260px;margin:0" oninput="debounceRegion()" onkeydown="if(event.key==='Enter')detectRegion()"><button class="btn btn-gold btn-sm" onclick="detectRegion()" id="btnDetect">Detect</button></div>
+          <div id="regionAlt" class="chips" style="justify-content:flex-start;margin-bottom:8px"></div>
+          <div id="pastorMap" class="admin-map"></div>
+          <p id="pCoord" class="muted" style="font-size:.72rem">Type a region or click the map to place the pin. Drag to fine-tune.</p>
+          <label style="display:flex;gap:10px;align-items:flex-start;font-size:.82rem;color:#cbd5e1;margin-bottom:12px;cursor:pointer"><input type="checkbox" id="pCreds" checked style="width:20px;height:20px;margin:0;flex:none"> Create the pastor's login and send the credentials by WhatsApp right now (plus a password-setup email)</label>
+          <div class="row"><button class="btn btn-gold" onclick="savePastor()" id="btnSavePastor">Register Pastor</button><button class="btn hidden" id="btnCancelPastor" onclick="resetPastorForm()">Cancel edit</button></div>
+        </div>
+        <div class="tbl-wrap"><table class="crud-table"><thead><tr><th>Name</th><th>Region</th><th>Contact</th><th>Souls</th><th></th></tr></thead><tbody id="pTableBody"></tbody></table></div>
+        <button class="btn btn-sm btn-auto" onclick="reassignAll()">Assign all unassigned souls to nearest pastor</button>
+      </div>
+
+      <!-- Videos -->
+      <div id="tab-videos" class="tab-panel hidden">
+        <div class="sub-card">
+          <h3 class="gold" id="vFormTitle">Add Salvation Video</h3>
+          <input id="vTitle" placeholder="Video title">
+          <input id="vDesc" placeholder="Short description (optional)">
+          <input id="vUrl" placeholder="Direct MP4/WebM URL or YouTube link">
+          <input type="file" id="adminVideoFile" accept="video/mp4,video/webm,video/x-matroska">
+          <div class="meter-wrap"><div id="uploadBar" class="meter-bar"></div></div>
+          <p id="uploadStatus" class="gold" style="font-size:.85rem;margin:4px 0"></p>
+          <label style="display:flex;gap:10px;align-items:center;margin-bottom:12px"><input type="checkbox" id="vReq" checked style="width:20px;height:20px;margin:0"> Required viewing (seeker must watch to the end)</label>
+          <div class="row"><button class="btn btn-gold" onclick="saveVideo()">Save Video</button><button class="btn btn-success" onclick="uploadVideoFile()">Upload file &amp; save</button><button class="btn hidden" id="btnCancelVideo" onclick="resetVideoForm()">Cancel edit</button></div>
+        </div>
+        <div id="vList"></div>
+        <div id="adminPreviewContainer" class="hidden sub-card"><h4 class="gold">Preview</h4><div class="vwrap" id="adminPreview"></div></div>
+      </div>
+
+      <!-- Scriptures -->
+      <div id="tab-scriptures" class="tab-panel hidden">
+        <div class="sub-card">
+          <h3 class="gold" id="sFormTitle">Add Scripture</h3>
+          <select id="sCatSel"><option>Salvation</option><option>Justification</option><option>Sanctification</option><option>Atonement</option></select>
+          <textarea id="sTextIn" placeholder="Scripture text"></textarea>
+          <input id="sRefIn" placeholder="Reference (e.g. John 3:16)">
+          <div class="row"><button class="btn btn-gold" onclick="saveScripture()">Save Scripture</button><button class="btn hidden" id="btnCancelS" onclick="resetScriptureForm()">Cancel</button><button class="btn btn-blue hidden" id="btnSeed" onclick="seedScriptures()">Load default scriptures</button></div>
+        </div>
+        <div class="tbl-wrap"><table class="crud-table"><thead><tr><th>Category</th><th>Reference</th><th>Text</th><th></th></tr></thead><tbody id="sTable"></tbody></table></div>
+      </div>
+
+      <!-- Prayer -->
+      <div id="tab-prayer" class="tab-panel hidden">
+        <div class="sub-card"><h3 class="gold">Salvation Prayer (spoken word-by-word)</h3><textarea id="prayerEdit" style="min-height:300px"></textarea>
+          <div class="row"><button class="btn btn-gold" onclick="savePrayer()">Save Prayer</button><button class="btn" onclick="$('prayerEdit').value=DEFAULT_PRAYER">Restore default</button></div></div>
+      </div>
+
+      <!-- Reports -->
+      <div id="tab-reports" class="tab-panel hidden">
+        <div class="row nogrow noprint" style="margin-bottom:14px">
+          <button class="btn btn-gold btn-sm" onclick="window.print()">🖨 Print / PDF</button>
+          <button class="btn btn-success btn-sm" onclick="exportCSV()">CSV</button>
+          <button class="btn btn-sm" onclick="exportJSON()">JSON</button>
+          <button class="btn btn-sm" onclick="exportTXT()">TXT summary</button>
+          <button class="btn btn-blue btn-sm" onclick="shareReport()">Share</button>
+        </div>
+        <div id="reportBody"></div>
+      </div>
+
+      <!-- Follow-up -->
+      <div id="tab-followup" class="tab-panel hidden">
+        <div class="sub-card">
+          <h3 class="gold">Follow-up Messaging</h3>
+          <textarea id="fuMsg">Shalom {name}, God bless you! Congratulations on giving your life to Jesus. We are praying with you and would love to walk with you.</textarea>
+          <p class="muted" style="font-size:.75rem">Use {name} to personalise. Browsers block mass pop-ups, so each WhatsApp opens one at a time when you press the button.</p>
+          <div class="row"><button class="btn btn-success" onclick="nextWhatsApp()" id="btnWA">Open next WhatsApp</button><button class="btn" onclick="emailAll()">Email all (BCC)</button><button class="btn" onclick="resetWAQueue()">Restart queue</button></div>
+          <p id="waProg" class="gold" style="font-size:.85rem"></p>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div id="tab-settings" class="tab-panel hidden">
+        <div class="sub-card"><h3 class="gold">Cloudinary upload settings</h3>
+          <input id="cldName" placeholder="Cloud name"><input id="cldPreset" placeholder="Unsigned upload preset">
+          <button class="btn btn-gold" onclick="saveCld()">Save</button></div>
+      </div>
+
+      <button class="btn btn-danger noprint" style="margin-top:24px" onclick="logout()">Logout</button>
     </div>
-
-    <div id="admin-section" class="card hidden">
-        <div id="admin-login">
-            <h2 style="color: var(--gold);">Mission Control</h2>
-            <input type="email" id="aEmail" placeholder="Email Address">
-            <input type="password" id="aPass" placeholder="Access Key">
-            <button class="btn btn-gold" onclick="doAdminLogin()">Unlock Dashboard</button>
-            <button class="btn" style="background: transparent; color: white;" onclick="toggleAdmin(false)">Cancel</button>
-        </div>
-
-        <div id="admin-dash" class="hidden">
-            <h2 id="dash-title" style="color: var(--gold); margin-top:0;">Kingdom Dashboard</h2>
-            
-            <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05);">
-                <h3 style="color: var(--gold); margin-top: 0;">Salvation Video Management</h3>
-                <p id="currentVideoTitle" style="color: #cbd5e1; font-size: 0.9rem;"></p>
-                
-                <input type="file" id="adminVideoFile" accept="video/mp4,video/mkv,video/webm">
-                <input type="text" id="adminVideoUrl" placeholder="Or enter direct streaming Video URL (MP4/WebM)">
-                
-                <div class="meter-wrap"><div id="uploadBar" class="meter-bar"></div></div>
-                <p id="uploadStatus" style="font-size:0.9rem; color: var(--gold); margin: 5px 0;"></p>
-                
-                <div style="display: flex; gap: 10px; margin-top: 10px;">
-                    <button class="btn btn-gold" onclick="uploadVideoFile()">Upload & Publish Video</button>
-                    <button class="btn btn-success" onclick="saveVideoUrl()">Save/Edit Video Stream URL</button>
-                    <button class="btn btn-danger" onclick="deleteActiveVideo()">Delete Active Video</button>
-                </div>
-                
-                <div id="adminPreviewContainer" class="hidden" style="margin-top: 20px; text-align: center;">
-                    <h4 style="color: var(--gold); margin-bottom: 10px;">Active Published Video Streaming Preview:</h4>
-                    <video id="adminPreviewVideo" controls style="max-height: 250px; width: 100%;">
-                        <source id="adminPreviewSource" src="" type="video/mp4">
-                        Your browser does not support video play.
-                    </video>
-                </div>
-            </div>
-
-            <div id="pastor-crud" class="hidden">
-                <h3 style="color: var(--gold);">Manage Counselors</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input type="text" id="pName" placeholder="Pastor Name"><input type="text" id="pReg" placeholder="Country / Region">
-                    <input type="email" id="pEmail" placeholder="Email"><input type="tel" id="pPhone" placeholder="WhatsApp">
-                </div>
-                <button class="btn btn-gold" style="margin-top:10px;" onclick="savePastor()">Add Pastor</button>
-                <table class="crud-table"><thead><tr><th>Name</th><th>Region</th><th>Actions</th></tr></thead><tbody id="pTableBody"></tbody></table>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-card"><span>Global Souls</span><span id="s-total" class="stat-val">0</span></div>
-                <div class="stat-card"><span>Today's Harvest</span><span id="s-today" class="stat-val">0</span></div>
-            </div>
-
-            <div style="margin-bottom: 20px;">
-                <h3 style="color: var(--gold);">Filter & Export Map Data</h3>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <input type="date" id="exportDate" style="margin:0; flex: 1;">
-                    <input type="text" id="exportRegion" placeholder="Region Filter" style="margin:0; flex: 1;">
-                    <button class="btn btn-gold" style="width: auto;" onclick="applyMapFilters()">Filter Map</button>
-                    <button class="btn btn-gold" style="width: auto;" onclick="exportData()">Export CSV</button>
-                </div>
-            </div>
-            <canvas id="harvestChart" height="150"></canvas>
-            <button class="btn btn-gold" style="margin-top:20px;" onclick="bulkWhatsAppFollowUp()">Bulk WhatsApp Follow-Up</button>
-            <button class="btn btn-danger" style="margin-top: 30px;" onclick="location.reload()">Logout</button>
-        </div>
-    </div>
+  </div>
 </div>
+
+<div id="soulModal" class="modal hidden"><div class="card" id="soulModalBody"></div></div>
+<div id="credModal" class="modal hidden" style="z-index:3500"><div class="card" id="credBody"></div></div>
+<canvas id="confetti"></canvas>
+<div id="toast" class="toast hidden"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, deleteDoc, doc, getDocs, query, where, orderBy, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, deleteDoc, doc, getDoc, getDocs, query, where, orderBy, onSnapshot, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, sendPasswordResetEmail, updatePassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyARdW7FdlmJunFE9o-dPNGTqkLflozt-GQ", 
-        authDomain: "king-b5942.firebaseapp.com",
-        projectId: "king-b5942", 
-        storageBucket: "king-b5942.firebasestorage.app",
-        messagingSenderId: "140800959449", 
-        appId: "1:140800959449:web:c20898e51cd065c091afc8"
-    };
+const app = initializeApp({
+  apiKey: "AIzaSyARdW7FdlmJunFE9o-dPNGTqkLflozt-GQ",
+  authDomain: "king-b5942.firebaseapp.com",
+  projectId: "king-b5942",
+  storageBucket: "king-b5942.firebasestorage.app",
+  messagingSenderId: "140800959449",
+  appId: "1:140800959449:web:c20898e51cd065c091afc8"
+});
+const db = getFirestore(app), auth = getAuth(app);
+// Secondary app: lets an admin create a pastor's login without being signed out
+const app2 = initializeApp(app.options, 'secondary'), auth2 = getAuth(app2);
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
+/* ================= Defaults ================= */
+const CATS = ['Salvation','Justification','Sanctification','Atonement'];
+const DEFAULT_SCRIPTURES = [
+ {id:'d1',cat:'Salvation',ref:'John 3:16',text:'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.'},
+ {id:'d2',cat:'Salvation',ref:'Romans 10:9',text:'That if thou shalt confess with thy mouth the Lord Jesus, and shalt believe in thine heart that God hath raised him from the dead, thou shalt be saved.'},
+ {id:'d3',cat:'Salvation',ref:'Romans 10:10',text:'For with the heart man believeth unto righteousness; and with the mouth confession is made unto salvation.'},
+ {id:'d4',cat:'Salvation',ref:'Ephesians 2:8-9',text:'For by grace are ye saved through faith; and that not of yourselves: it is the gift of God: Not of works, lest any man should boast.'},
+ {id:'d5',cat:'Salvation',ref:'Acts 4:12',text:'Neither is there salvation in any other: for there is none other name under heaven given among men, whereby we must be saved.'},
+ {id:'d5b',cat:'Salvation',ref:'John 14:6',text:'Jesus saith unto him, I am the way, the truth, and the life: no man cometh unto the Father, but by me.'},
+ {id:'d6',cat:'Justification',ref:'Romans 5:1',text:'Therefore being justified by faith, we have peace with God through our Lord Jesus Christ.'},
+ {id:'d7',cat:'Justification',ref:'Romans 3:23-24',text:'For all have sinned, and come short of the glory of God; Being justified freely by his grace through the redemption that is in Christ Jesus.'},
+ {id:'d8',cat:'Justification',ref:'Romans 5:9',text:'Much more then, being now justified by his blood, we shall be saved from wrath through him.'},
+ {id:'d9',cat:'Justification',ref:'2 Corinthians 5:21',text:'For he hath made him to be sin for us, who knew no sin; that we might be made the righteousness of God in him.'},
+ {id:'d10',cat:'Sanctification',ref:'1 Thessalonians 5:23',text:'And the very God of peace sanctify you wholly; and I pray God your whole spirit and soul and body be preserved blameless unto the coming of our Lord Jesus Christ.'},
+ {id:'d11',cat:'Sanctification',ref:'John 17:17',text:'Sanctify them through thy truth: thy word is truth.'},
+ {id:'d12',cat:'Sanctification',ref:'Hebrews 10:10',text:'By the which will we are sanctified through the offering of the body of Jesus Christ once for all.'},
+ {id:'d13',cat:'Sanctification',ref:'1 John 1:9',text:'If we confess our sins, he is faithful and just to forgive us our sins, and to cleanse us from all unrighteousness.'},
+ {id:'d14',cat:'Atonement',ref:'1 John 2:2',text:'And he is the propitiation for our sins: and not for ours only, but also for the sins of the whole world.'},
+ {id:'d15',cat:'Atonement',ref:'Isaiah 53:5',text:'But he was wounded for our transgressions, he was bruised for our iniquities: the chastisement of our peace was upon him; and with his stripes we are healed.'},
+ {id:'d16',cat:'Atonement',ref:'Romans 5:11',text:'And not only so, but we also joy in God through our Lord Jesus Christ, by whom we have now received the atonement.'}
+];
+const DEFAULT_PRAYER = "Heavenly Father, I come to You in the name of Jesus. I acknowledge that I am a sinner, and that I cannot save myself. I thank You for loving me so much that You gave Your only Son. Lord Jesus, I believe that You are the Son of God. I believe that You died on the cross as the atoning sacrifice for my sins. I believe that Your blood was shed to redeem me. I believe that God raised You from the dead on the third day, and that You are alive forevermore. I repent of my sins and I turn away from everything that dishonors You. I forgive those who have wronged me, and I receive Your forgiveness. By faith I receive Your grace, and I am justified, declared righteous before God. Holy Spirit, sanctify me completely in spirit, soul and body. Wash me, cleanse me, and make me new. Write my name in the Book of Life. With my mouth I confess that Jesus Christ is Lord, and in my heart I believe that God raised Him from the dead. I am saved. I am forgiven. I am redeemed. I am a child of God. From today I will follow You, read Your Word, pray, fellowship with believers, and tell others about You. Thank You, Father. In the mighty name of Jesus Christ I pray. Amen.";
+const FALLBACK_VIDEO = {id:'fb',title:'Message of Salvation',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',required:true};
+const STATUSES = ['new','contacted','visiting','discipled','baptized'];
+const SCOL = {new:'#3b82f6',contacted:'#f59e0b',visiting:'#8b5cf6',discipled:'#10b981',baptized:'#06b6d4'};
 
-    const scriptures = [
-        { text: "Whosoever believeth that Jesus is the Christ is born of God: and every one that loveth him that begat loveth him also that is begotten of him.", ref: "1 John 5:1" },
-        { text: "For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.", ref: "John 3:16" },
-        { text: "If you declare with your mouth, Jesus is Lord, and believe in your heart that God raised him from the dead, you will be saved.", ref: "Romans 10:9" },
-        { text: "For all have sinned, and come short of the glory of God. Being justified freely by his grace through the redemption that is in Christ Jesus.", ref: "Romans 3:23-24" },
-        { text: "Neither is there salvation in any other: for there is none other name under heaven given among men, whereby we must be saved.", ref: "Acts 4:12" },
-        { text: "Jesus saith unto him, I am the way, the truth, and the life: no man cometh unto the Father, but by me.", ref: "John 14:6" }
-    ];
+/* ================= Utils ================= */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => s.toLowerCase().replace(/[^a-z0-9']/g,'');
+const lev=(a,b)=>{const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let p=Array.from({length:n+1},(_,i)=>i);for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]};
+const sim=(a,b)=>(!a||!b)?0:1-lev(a,b)/Math.max(a.length,b.length);
+const hav=(a,b,c,d)=>{const t=x=>x*Math.PI/180,dl=t(c-a),dn=t(d-b),h=Math.sin(dl/2)**2+Math.cos(t(a))*Math.cos(t(c))*Math.sin(dn/2)**2;return 12742*Math.asin(Math.sqrt(h))};
+const ymd=ms=>{const d=new Date(ms);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const tsOf=s=>{const t=Date.parse(s.timestamp);return isNaN(t)?Date.now():t};
+const W = window; W.$=$; W.DEFAULT_PRAYER=DEFAULT_PRAYER;
+let tt; function toast(m,bad){const t=$('toast');t.textContent=m;t.style.background=bad?'#b91c1c':'#1d4ed8';t.classList.remove('hidden');clearTimeout(tt);tt=setTimeout(()=>t.classList.add('hidden'),3200)}
+const guard=async fn=>{try{await fn()}catch(e){console.error(e);toast('Error: '+(e.message||e),true)}};
+const show=id=>$(id).classList.remove('hidden'), hide=id=>$(id).classList.add('hidden');
+const dl=(blob,name)=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000)};
+const vib=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
 
-    let currentScriptureIdx = 0;
-    let map, clusterGroup, chart, recognition, isUserPath = false, harvestData = [], currentRole = 'admin', assignedRegion = null;
-    let autoLat = 0, autoLng = 0;
-    let scriptureWordsSet = new Set();
-    let prayerWordsSet = new Set();
-    let maxTimeWatched = 0;
+W.fontStep=d=>{let n=Math.max(-2,Math.min(5,(+localStorage.gc_fs||0)+d));localStorage.gc_fs=n;document.documentElement.style.setProperty('--fs',(16+n*1.5)+'px')};
+fontStep(0);
 
-    function updateAdminPreview(url) {
-        const previewContainer = document.getElementById('adminPreviewContainer');
-        const previewVideo = document.getElementById('adminPreviewVideo');
-        const previewSource = document.getElementById('adminPreviewSource');
-        const currentVideoTitle = document.getElementById('currentVideoTitle');
-        if (previewContainer && previewVideo && previewSource) {
-            previewSource.src = url;
-            previewVideo.load();
-            previewContainer.classList.remove('hidden');
-            if(currentVideoTitle) currentVideoTitle.innerText = "Current Active Video URL: " + url;
-        }
-    }
+function beep(f=880){try{const a=new (W.AudioContext||W.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.frequency.value=f;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.12,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.4);o.start();o.stop(a.currentTime+.4)}catch(e){}}
+function confetti(n=160){const c=$('confetti'),x=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;const cols=['#f1c40f','#27ae60','#3b82f6','#e74c3c','#8b5cf6','#fff'];const ps=Array.from({length:n},()=>({x:Math.random()*c.width,y:-20-Math.random()*c.height*.5,vx:Math.random()*4-2,vy:Math.random()*4+2,s:Math.random()*8+4,r:Math.random()*6,vr:Math.random()*.3-.15,c:cols[Math.random()*cols.length|0]}));let f=0;(function loop(){x.clearRect(0,0,c.width,c.height);ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;x.save();x.translate(p.x,p.y);x.rotate(p.r);x.fillStyle=p.c;x.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);x.restore()});if(++f<240)requestAnimationFrame(loop);else x.clearRect(0,0,c.width,c.height)})()}
 
-    window.loadActiveVideo = async function() {
-        try {
-            const vSnap = await getDocs(collection(db, "config"));
-            vSnap.forEach(d => {
-                if(d.id === "video" && d.data().url) {
-                    const videoUrl = d.data().url;
-                    const userSource = document.getElementById('videoSource');
-                    const userVideo = document.getElementById('salvationVideo');
-                    if (userSource && userVideo) {
-                        userSource.src = videoUrl;
-                        userVideo.load();
-                    }
-                    updateAdminPreview(videoUrl);
-                }
-            });
-        } catch(e) { console.log("Default video loaded or error reading Firestore:", e); }
-    };
+/* ================= State ================= */
+let map, cluster, pastorLayer, seekerMarker, formMap, formMarker, adminPastorMap, apMarker;
+let autoLat=0, autoLng=0, autoCity='', autoCountry='', autoAcc=null, haveGeo=false;
+let scriptures=[], dbScriptures=[], videos=[], dbVideos=[], legacyVideo=null, pastors=[], prayerText=DEFAULT_PRAYER;
+let harvestData=[], viewData=[], currentRole='admin', myPastor=null;
+let journey=[], jIdx=0, path='essential', watched={}, curVideoIdx=0, maxTime=0;
+let range='all', charts={};
+let unsubSouls=[], waQueue=0, adminReady=false, migrating=false;
+const speechLang=()=>$('langSel').value;
+$('langSel').value=localStorage.gc_lang||'en-US'; $('langSel').onchange=()=>{localStorage.gc_lang=$('langSel').value; if(cur&&want){const t=cur;stopSpeak();setTimeout(()=>startSpeak(t),200)}};
 
-    window.initMap = function() {
-        if (map) return;
-        map = L.map('map', { zoomControl: true }).setView([0, 0], 2);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        clusterGroup = L.markerClusterGroup().addTo(map);
-    };
+/* ================= Speech engine ================= */
+const SR=W.SpeechRecognition||W.webkitSpeechRecognition;
+const prog={}, doneMap=JSON.parse(localStorage.gc_done||'{}');
+const tokCache={}; const tok=t=>tokCache[t]||(tokCache[t]=t.split(/\s+/).filter(Boolean).map(r=>({raw:r,n:norm(r)})));
+let cur=null, rec=null, want=false, base=0;
+const matchW=(s,t)=>{if(!s||!t)return false;if(s===t)return true;const x=sim(s,t);if(t.length<=2)return x>=.5||s[0]===t[0];if(t.length<=4)return x>=.6;return x>=.68};
+function mount(T){ // T:{key,text,el,bar,status,btn,onDone,persist}
+  const ws=tok(T.text); T.len=ws.length;
+  if(T.persist&&doneMap[T.key])prog[T.key]=ws.length; else prog[T.key]=prog[T.key]||0;
+  T.el.innerHTML=ws.map((w,i)=>`<span class="word" data-i="${i}">${esc(w.raw)}</span> `).join('');
+  T.el.onclick=ev=>{const s=ev.target.closest('.word');if(s&&+s.dataset.i===prog[T.key]){cur=cur&&cur.key===T.key?cur:T;advance(T,prog[T.key]+1)}};
+  paint(T);
+}
+function paint(T){const p=prog[T.key]||0,sp=T.el.children;for(let i=0;i<sp.length;i++){sp[i].className='word'+(i<p?' done':(i===p&&cur&&cur.key===T.key?' cur':''))}if(T.bar)T.bar.style.width=(T.len?p/T.len*100:0)+'%'}
+function isDone(T){return (prog[T.key]||0)>=T.len}
+function advance(T,np){prog[T.key]=Math.min(np,T.len);paint(T);if(isDone(T)){if(T.persist){doneMap[T.key]=1;localStorage.gc_done=JSON.stringify(doneMap)}stopSpeak();beep();vib(80);T.onDone&&T.onDone();}}
+function process(t){const sp=t.toLowerCase().split(/\s+/).map(norm).filter(Boolean),ws=tok(cur.text);let p=base;for(const w of sp){if(p>=ws.length)break;if(matchW(w,ws[p].n)){p++;continue}if(ws[p].n.length<=3&&p+1<ws.length&&matchW(w,ws[p+1].n)){p+=2}}if(p>(prog[cur.key]||0))advance(cur,p)}
+function makeRec(){rec=new SR();rec.lang=speechLang();rec.continuous=true;rec.interimResults=true;rec.maxAlternatives=3;
+  rec.onresult=e=>{let t='';for(let i=0;i<e.results.length;i++)t+=' '+e.results[i][0].transcript;if(cur){if(cur.status)cur.status.textContent='🎤 '+t.trim().slice(-90);process(t)}};
+  rec.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'){want=false;toast('Microphone blocked. Allow it, or tap the glowing word as you read aloud.',true);if(cur&&cur.status)cur.status.textContent='Microphone blocked: tap the glowing word as you read each word aloud.';uiSpeak(false)}};
+  rec.onend=()=>{if(want&&cur){base=prog[cur.key]||0;setTimeout(()=>{if(want){makeRec();try{rec.start()}catch(e){}}},150)}else uiSpeak(false)}}
+function uiSpeak(on){if(!cur)return;if(cur.btn){cur.btn.innerHTML=on?'<span class="mic"></span>Stop':(cur.label||'🎤 Speak')}paint(cur)}
+function startSpeak(T){stopSpeak();speechSynthesis&&speechSynthesis.cancel();cur=T;
+  if(!SR){if(T.nospeech)T.nospeech.classList.remove('hidden');paint(T);return}
+  base=prog[T.key]||0;want=true;makeRec();try{rec.start()}catch(e){}uiSpeak(true);if(T.status)T.status.textContent='Listening… speak every word aloud'}
+function stopSpeak(){want=false;if(rec){try{rec.abort()}catch(e){}rec=null}if(cur){const c=cur;if(c.btn)c.btn.innerHTML=c.label||'🎤 Speak';paint(c)}}
+function resetT(T){stopSpeak();prog[T.key]=0;if(T.persist){delete doneMap[T.key];localStorage.gc_done=JSON.stringify(doneMap)}paint(T);T.onReset&&T.onReset()}
+function hear(text){if(!W.speechSynthesis)return toast('Audio not supported',true);stopSpeak();speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=speechLang();u.rate=.85;speechSynthesis.speak(u)}
 
-    window.autoDetectLocation = function() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    autoLat = position.coords.latitude;
-                    autoLng = position.coords.longitude;
-                    updateMapWithCoordinates();
-                },
-                () => fallbackIPGeolocate(),
-                { enableHighAccuracy: true, timeout: 7000 }
-            );
-        } else {
-            fallbackIPGeolocate();
-        }
-    };
+/* ================= Geo ================= */
+const reverseGeo=async(lat,lng)=>{try{const j=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&addressdetails=1&lat=${lat}&lon=${lng}`,{headers:{'Accept-Language':'en'}}).then(r=>r.json());const a=j.address||{};return{city:a.city||a.town||a.village||a.county||a.state||'',country:a.country||'',region:a.state||a.county||''}}catch(e){return{city:'',country:'',region:''}}};
+const forwardGeo=async q=>{try{return await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&q=${encodeURIComponent(q)}`,{headers:{'Accept-Language':'en'}}).then(r=>r.json())}catch(e){return[]}};
+async function ipFallback(){try{const r=await fetch('https://ipwho.is/').then(r=>r.json());if(r&&r.success!==false&&r.latitude){autoLat=r.latitude;autoLng=r.longitude;autoCity=r.city||'';autoCountry=r.country||'';autoAcc=null;haveGeo=true;return true}}catch(e){}
+  try{const r=await fetch('https://ipapi.co/json/').then(r=>r.json());if(r&&r.latitude){autoLat=r.latitude;autoLng=r.longitude;autoCity=r.city||'';autoCountry=r.country_name||'';haveGeo=true;return true}}catch(e){}return false}
+W.autoDetectLocation=(quiet)=>new Promise(res=>{
+  const done=async ok=>{if(ok){updateSeekerMarker();if(quiet===true){toast('Location detected: '+locText());syncForm()}}else{$('geoMsg').textContent='Could not detect your location. You can type it in the registration step.'}res(ok)};
+  if(!navigator.geolocation)return ipFallback().then(done);
+  navigator.geolocation.getCurrentPosition(async p=>{autoLat=p.coords.latitude;autoLng=p.coords.longitude;autoAcc=Math.round(p.coords.accuracy);haveGeo=true;const g=await reverseGeo(autoLat,autoLng);autoCity=g.city;autoCountry=g.country;done(true)},
+    async()=>done(await ipFallback()),{enableHighAccuracy:true,timeout:10000,maximumAge:60000})});
+const locText=()=>[autoCity,autoCountry].filter(Boolean).join(', ');
+function updateSeekerMarker(){if(!map||!haveGeo)return;map.setView([autoLat,autoLng],10);if(seekerMarker)map.removeLayer(seekerMarker);seekerMarker=L.marker([autoLat,autoLng],{icon:L.divIcon({className:'pulse-marker',iconSize:[18,18]})}).addTo(map)}
+function syncForm(){$('uLoc').value=locText();if(formMap&&haveGeo){formMap.setView([autoLat,autoLng],13);placeFormMarker(autoLat,autoLng)}}
+function placeFormMarker(lat,lng){if(formMarker)formMap.removeLayer(formMarker);formMarker=L.marker([lat,lng],{draggable:true}).addTo(formMap);formMarker.on('dragend',e=>setSeekerPos(e.target.getLatLng().lat,e.target.getLatLng().lng))}
+async function setSeekerPos(lat,lng){autoLat=lat;autoLng=lng;haveGeo=true;autoAcc=null;const g=await reverseGeo(lat,lng);autoCity=g.city;autoCountry=g.country;$('uLoc').value=locText();updateSeekerMarker()}
+W.geocodeSeeker=async()=>{const q=$('uLoc').value.trim();if(q.length<3)return;const r=await forwardGeo(q);if(r[0]){autoLat=+r[0].lat;autoLng=+r[0].lon;haveGeo=true;autoAcc=null;const a=r[0].address||{};autoCity=a.city||a.town||a.village||a.county||a.state||q;autoCountry=a.country||autoCountry;placeFormMarker(autoLat,autoLng);formMap.setView([autoLat,autoLng],11);updateSeekerMarker()}else toast('Place not found, drop the pin on the map',true)};
 
-    async function fallbackIPGeolocate() {
-        try {
-            const res = await fetch('https://ipapi.co/json/').then(r => r.json());
-            if(res && res.latitude && res.longitude) {
-                autoLat = res.latitude;
-                autoLng = res.longitude;
-                updateMapWithCoordinates();
-            }
-        } catch(e) {
-            try {
-                const res2 = await fetch('https://ip-api.com/json/').then(r => r.json());
-                if(res2 && res2.lat && res2.lon) {
-                    autoLat = res2.lat;
-                    autoLng = res2.lon;
-                    updateMapWithCoordinates();
-                }
-            } catch(err) { console.log("All geolocation fallbacks exhausted."); }
-        }
-    }
+/* ================= Maps ================= */
+const tile=m=>L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(m);
+const pastorIcon=()=>L.divIcon({className:'',html:'<div class="pastor-pin">✝️</div>',iconSize:[24,24],iconAnchor:[12,12]});
+function initMap(){map=L.map('map',{worldCopyJump:true}).setView([5,20],2);tile(map);cluster=L.markerClusterGroup().addTo(map);pastorLayer=L.layerGroup().addTo(map)}
+function renderMap(data){cluster.clearLayers();pastorLayer.clearLayers();
+  data.filter(s=>typeof s.lat==='number'&&(s.lat||s.lng)).forEach(s=>{const wa=`https://wa.me/${String(s.phone||'').replace(/\D/g,'')}?text=${encodeURIComponent('Shalom '+s.name+', God bless you!')}`;
+    const m=L.circleMarker([s.lat,s.lng],{radius:9,color:'#fff',weight:1.5,fillColor:SCOL[s.status||'new']||'#3b82f6',fillOpacity:.95});
+    m.bindPopup(`<div style="color:#0f172a;font-family:sans-serif"><h3 style="margin:0 0 4px;color:#27ae60">${esc(s.name)}</h3><p style="margin:0 0 3px"><b>Phone:</b> ${esc(s.phone)}</p><p style="margin:0 0 3px"><b>Region:</b> ${esc(s.country||'Global')}</p><p style="margin:0 0 3px"><b>Status:</b> ${esc(s.status||'new')}</p><p style="margin:0 0 8px;font-size:.8rem;color:#64748b">${new Date(tsOf(s)).toLocaleString()}</p><a href="${wa}" target="_blank" rel="noopener" style="background:#27ae60;color:#fff;padding:6px 12px;border-radius:6px;text-decoration:none;font-size:.8rem">WhatsApp</a></div>`);
+    cluster.addLayer(m)});
+  if(currentRole==='admin')pastors.filter(p=>typeof p.lat==='number').forEach(p=>L.marker([p.lat,p.lng],{icon:pastorIcon()}).addTo(pastorLayer).bindPopup(`<b>${esc(p.name)}</b><br>${esc(p.region||'')}`));
+  const pts=cluster.getLayers().map(l=>l.getLatLng());if(pts.length&&$('admin-dash')&&!$('admin-dash').classList.contains('hidden'))map.fitBounds(L.latLngBounds(pts),{padding:[40,40],maxZoom:10});
+}
 
-    function updateMapWithCoordinates() {
-        if (map && autoLat !== 0) {
-            map.setView([autoLat, autoLng], 10);
-            const pulse = L.divIcon({ className: 'pulse-marker', iconSize: [18, 18] });
-            L.marker([autoLat, autoLng], {icon: pulse}).addTo(map);
-        }
-    }
+/* ================= Content (public) ================= */
+function buildJourney(){const src=scriptures; const list=path==='full'?[...src].sort((a,b)=>CATS.indexOf(a.cat)-CATS.indexOf(b.cat)):src.filter(s=>(s.cat||'Salvation')==='Salvation');journey=list.length?list:src}
+function rebuildScriptures(){scriptures=dbScriptures.length?dbScriptures:DEFAULT_SCRIPTURES;buildJourney()}
+function rebuildVideos(){const v=dbVideos.length?dbVideos:(legacyVideo?[{id:'legacy',title:'Message of Salvation',url:legacyVideo,required:true}]:[FALLBACK_VIDEO]);videos=v}
 
-    window.addEventListener('DOMContentLoaded', () => {
-        window.initMap();
-        window.autoDetectLocation();
-        window.loadActiveVideo();
-        setupVideoNoDragging();
+/* ================= Journey ================= */
+W.startJourney=async()=>{
+  $('btnBegin').disabled=true;$('btnBegin').textContent='Detecting your location…';$('geoMsg').textContent='';
+  await autoDetectLocation();
+  $('btnBegin').disabled=false;$('btnBegin').textContent='Begin Journey';
+  $('lordPlace').textContent=haveGeo&&locText()?'Over '+locText():'Over every nation';
+  show('gate-lord');confetti(120);playLord(7)};
+let lordRun=0;
+function playLord(n){const run=++lordRun;const pips=$('lordPips');pips.innerHTML=Array.from({length:n},()=>'<span class="pip"></span>').join('');let c=0;
+  const next=()=>{if(run!==lordRun)return;if(c>=n){setTimeout(()=>{if(run===lordRun)skipLord()},600);return}
+    pips.children[c]&&pips.children[c].classList.add('on');c++;
+    if(!W.speechSynthesis){setTimeout(next,1100);return}
+    const u=new SpeechSynthesisUtterance('Jesus is Lord');u.lang=speechLang();u.rate=.9;
+    const v=speechSynthesis.getVoices().find(v=>/david|james|male|daniel|alex/i.test(v.name));if(v)u.voice=v;
+    u.onend=()=>setTimeout(next,250);u.onerror=()=>setTimeout(next,900);speechSynthesis.speak(u)};
+  speechSynthesis&&speechSynthesis.cancel();next()}
+W.skipLord=()=>{lordRun++;speechSynthesis&&speechSynthesis.cancel();hide('gate-lord');openScriptureGate()};
 
-        // Tap-to-unlock fallbacks if microphone is disabled or failing
-        document.getElementById('scriptureText').addEventListener('click', () => {
-            document.getElementById('scriptureBar').style.width = '100%';
-            document.getElementById('btnNextScripture').disabled = false;
-        });
+/* ---- Scriptures gate ---- */
+let ST=null;
+function openScriptureGate(){show('gate-scripture');renderPathChips();jIdx=0;renderScripture(true)}
+function renderPathChips(){$('pathChips').innerHTML=`<button class="chip ${path==='essential'?'on':''}" onclick="setPath('essential')">Essential · Salvation</button><button class="chip ${path==='full'?'on':''}" onclick="setPath('full')">Full Foundation · All 4 doctrines</button>`}
+W.setPath=p=>{path=p;stopSpeak();buildJourney();jIdx=0;renderPathChips();renderScripture()};
+function renderScripture(auto){
+  stopSpeak();const s=journey[jIdx];
+  ST={key:'s_'+s.id,text:s.text,el:$('scriptureText'),bar:$('scriptureBar'),status:$('sVoiceStatus'),btn:$('sSpeak'),label:'🎤 Speak',persist:true,nospeech:$('sNoSpeech'),
+    onDone:()=>{$('btnNextScripture').disabled=false;$('sVoiceStatus').textContent='✓ Beautiful! Every word confessed.';fireSmall()},onReset:()=>{$('btnNextScripture').disabled=true}};
+  mount(ST);
+  $('sCat').textContent=s.cat||'Salvation';$('sRef').textContent='— '+s.ref;$('sCount').textContent=(jIdx+1)+' / '+journey.length;
+  $('btnNextScripture').disabled=!isDone(ST);$('btnNextScripture').textContent=jIdx===journey.length-1?'Continue to Video →':'Next →';
+  $('sVoiceStatus').textContent=isDone(ST)?'✓ Already confessed':'Press Speak and read every word aloud…';
+  if(!SR)$('sNoSpeech').classList.remove('hidden');
+  if(auto&&SR&&!isDone(ST))setTimeout(()=>startSpeak(ST),300);
+}
+const fireSmall=()=>confetti(50);
+W.toggleSpeakScripture=()=>{if(want&&cur===ST)stopSpeak();else startSpeak(ST)};
+W.hearScripture=()=>hear(ST.text);
+W.resetScripture=()=>resetT(ST);
+W.prevScripture=()=>{if(jIdx>0){jIdx--;renderScripture()}};
+W.nextScripture=()=>{if(!isDone(ST))return;if(jIdx<journey.length-1){jIdx++;renderScripture(true)}else{stopSpeak();hide('gate-scripture');openVideoGate()}};
 
-        document.getElementById('prayerText').addEventListener('click', () => {
-            document.getElementById('voiceBar').style.width = '100%';
-            document.getElementById('btnAmen').disabled = false;
-        });
-    });
+/* ---- Video gate ---- */
+let ytPlayer=null,ytReady=null;
+const ytId=u=>{const m=(u||'').match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);return m&&m[1]};
+function loadYT(){if(ytReady)return ytReady;ytReady=new Promise(r=>{if(W.YT&&W.YT.Player)return r();W.onYouTubeIframeAPIReady=r;const s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s)});return ytReady}
+function openVideoGate(){show('gate-video');hide('beliefChoice');hide('unbelief');curVideoIdx=0;renderVideoChips();playVideo(0)}
+function reqAllWatched(){return videos.filter(v=>v.required!==false).every(v=>watched[v.id])}
+function renderVideoChips(){$('videoChips').innerHTML=videos.map((v,i)=>`<button class="chip ${i===curVideoIdx?'on':''} ${watched[v.id]?'ok':''}" onclick="playVideo(${i})">${esc(v.title||'Video '+(i+1))}${v.required===false?' (optional)':''}</button>`).join('')}
+W.playVideo=async i=>{curVideoIdx=i;maxTime=0;const v=videos[i];renderVideoChips();$('videoTitle').textContent=v.title||'';const h=$('videoHolder');
+  if(ytPlayer){try{ytPlayer.destroy()}catch(e){}ytPlayer=null}
+  const yid=ytId(v.url);
+  if(yid){h.innerHTML='<div id="ytDiv"></div>';await loadYT();ytPlayer=new YT.Player('ytDiv',{videoId:yid,width:'100%',height:'100%',playerVars:{rel:0,modestbranding:1,playsinline:1},events:{onStateChange:e=>{if(e.data===0)markWatched()}}})}
+  else{h.innerHTML=`<video id="salvationVideo" controls controlsList="nodownload noplaybackrate" playsinline preload="metadata"><source src="${esc(v.url)}" type="video/mp4"></video>`;const el=$('salvationVideo');
+    el.addEventListener('timeupdate',()=>{if(!el.seeking&&el.currentTime>maxTime)maxTime=el.currentTime});
+    el.addEventListener('seeking',()=>{if(el.currentTime>maxTime+.5)el.currentTime=maxTime});
+    el.addEventListener('ended',markWatched);el.addEventListener('error',()=>{$('videoStatus').textContent='This video could not be loaded. Please ask the administrator to check the link.'})}
+  $('videoStatus').textContent=watched[v.id]?'✓ Watched.':'Please watch to the end to unlock the next step. Skipping ahead is not possible.'};
+function markWatched(){const v=videos[curVideoIdx];watched[v.id]=true;renderVideoChips();$('videoStatus').textContent='✓ Video complete.';
+  if(reqAllWatched()){show('beliefChoice');$('beliefChoice').scrollIntoView({behavior:'smooth',block:'center'})}else{$('videoStatus').textContent='✓ Complete. Please watch the remaining required video(s).'}}
+W.handleBeliefChoice=b=>{if(b){if(ytPlayer){try{ytPlayer.destroy()}catch(e){}}hide('gate-video');openPrayerGate()}else{hide('beliefChoice');show('unbelief')}};
+W.rewatch=()=>{watched={};hide('unbelief');hide('beliefChoice');playVideo(0)};
 
-    function setupVideoNoDragging() {
-        const video = document.getElementById('salvationVideo');
-        if(!video) return;
+/* ---- Prayer gate ---- */
+let PT=null;
+function openPrayerGate(){show('gate-prayer');$('btnAmen').disabled=true;
+  PT={key:'prayer',text:prayerText,el:$('prayerText'),bar:$('voiceBar'),status:$('vStatus'),btn:$('pSpeak'),label:'🎤 Speak the Prayer',onDone:()=>{$('btnAmen').disabled=false;$('vStatus').textContent='✓ Every word prayed. Amen!';confetti(100)},onReset:()=>{$('btnAmen').disabled=true}};
+  prog.prayer=0;mount(PT);if(!SR)$('vStatus').textContent='Voice not supported here: pray each word aloud and tap the glowing word.'}
+W.toggleSpeakPrayer=()=>{if(want&&cur===PT)stopSpeak();else startSpeak(PT)};
+W.hearPrayer=()=>hear(PT.text);W.resetPrayer=()=>resetT(PT);
 
-        video.addEventListener('timeupdate', () => {
-            if (!video.seeking) {
-                if (video.currentTime > maxTimeWatched) {
-                    maxTimeWatched = video.currentTime;
-                }
-            }
-        });
+/* ---- Registration ---- */
+W.showForm=()=>{stopSpeak();hide('gate-prayer');show('gate-form');
+  setTimeout(()=>{if(!formMap){formMap=L.map('formMap').setView(haveGeo?[autoLat,autoLng]:[5,20],haveGeo?13:2);tile(formMap);formMap.on('click',e=>{placeFormMarker(e.latlng.lat,e.latlng.lng);setSeekerPos(e.latlng.lat,e.latlng.lng)})}formMap.invalidateSize();syncForm()},200)};
+const nearest=(lat,lng)=>{let b=null,bd=1e9;pastors.forEach(p=>{if(typeof p.lat!=='number')return;const d=hav(lat,lng,p.lat,p.lng);if(d<bd){bd=d;b=p}});return b};
+function fieldErr(id,msg){const e=$(id);e.textContent=msg||'';e.classList.toggle('hidden',!msg);return !!msg}
+W.submitToKingdom=async()=>{
+  const n=$('uName').value.trim(),p=$('uPhone').value.trim(),e=$('uEmail').value.trim();
+  let bad=false;bad=fieldErr('eName',n.length<2?'Please enter your name':'')||bad;bad=fieldErr('ePhone',!/^\+?[0-9 ()\-]{7,}$/.test(p)?'Enter a valid phone number':'')||bad;bad=fieldErr('eEmail',e&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)?'Enter a valid email':'')||bad;
+  if(bad)return;if(!$('uConsent').checked)return toast('Please tick the agreement box',true);
+  const btn=$('btnSubmit');btn.disabled=true;btn.textContent='Submitting…';
+  try{
+    const loc=$('uLoc').value.trim()||locText();const country=autoCountry||'Global';const pas=haveGeo?nearest(autoLat,autoLng):null;
+    await addDoc(collection(db,'souls'),{name:n,phone:p,email:e,location:loc,city:autoCity,country,lat:haveGeo?autoLat:0,lng:haveGeo?autoLng:0,geo:haveGeo,accuracy:autoAcc,status:'new',pastorId:pas?pas.id:'',pastorName:pas?pas.name:'',notes:'',lang:speechLang(),timestamp:new Date().toISOString()});
+    hide('gate-form');showDone(n.split(' ')[0],country,pas);
+  }catch(err){toast('Could not submit: '+err.message,true)}
+  btn.disabled=false;btn.textContent='Submit to the Book of Life';
+};
+let doneName='';
+function showDone(first,country,pas){doneName=first;$('doneTitle').textContent='Congratulations, '+first+'!';
+  $('feedbackText').textContent=`Heaven is rejoicing over you today (Luke 15:7). You are forgiven, justified, sanctified and made new. Welcome to the family of God, ${first}!`;
+  $('donePastor').innerHTML=pas?`<b class="gold">Your nearest pastor</b><br><b>${esc(pas.name)}</b><br><span class="muted">${esc(pas.region||'')}${pas.church?' · '+esc(pas.church):''}</span><br><span class="muted">They will call you shortly to pray with you.</span>`:`<b class="gold">What happens next</b><br><span class="muted">A pastor or counselor from the ${esc(country)} region will call you shortly to pray with you.</span>`;
+  const t=encodeURIComponent(shareText()),u=encodeURIComponent(shareUrl());$('shWA').href='https://wa.me/?text='+t+'%20'+u;$('shTG').href=`https://t.me/share/url?url=${u}&text=${t}`;$('shX').href=`https://twitter.com/intent/tweet?text=${t}&url=${u}`;$('shFB').href='https://www.facebook.com/sharer/sharer.php?u='+u;
+  show('gate-done');confetti(300);setTimeout(()=>confetti(200),1300);vib([100,60,100,60,200])}
+const shareText=()=>'I just gave my life to Jesus Christ! 🙏 Jesus is Lord! Join me:';const shareUrl=()=>location.href.split('#')[0];
+W.nativeShare=async()=>{if(navigator.share){try{await navigator.share({title:'Jesus is Lord',text:shareText(),url:shareUrl()})}catch(e){}}else copyShare()};
+W.copyShare=async()=>{try{await navigator.clipboard.writeText(shareText()+' '+shareUrl());toast('Link copied')}catch(e){toast('Copy failed',true)}};
+W.downloadCertificate=()=>{const c=document.createElement('canvas');c.width=1400;c.height=950;const x=c.getContext('2d');const g=x.createLinearGradient(0,0,1400,950);g.addColorStop(0,'#0f172a');g.addColorStop(1,'#1e3a8a');x.fillStyle=g;x.fillRect(0,0,1400,950);
+  x.strokeStyle='#f1c40f';x.lineWidth=8;x.strokeRect(40,40,1320,870);x.lineWidth=2;x.strokeRect(62,62,1276,826);x.fillStyle='#f1c40f';x.textAlign='center';x.font='bold 90px serif';x.fillText('✝',700,190);x.font='bold 64px Georgia,serif';x.fillText('Certificate of New Birth',700,290);
+  x.fillStyle='#cbd5e1';x.font='28px Georgia,serif';x.fillText('This celebrates that',700,370);x.fillStyle='#fff';x.font='italic bold 84px Georgia,serif';x.fillText(doneName||'A Beloved Child',700,490);
+  x.fillStyle='#cbd5e1';x.font='28px Georgia,serif';x.fillText('confessed Jesus Christ as Lord and Saviour',700,570);x.fillText('on '+new Date().toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}),700,615);
+  x.fillStyle='#f1c40f';x.font='italic 30px Georgia,serif';x.fillText('"If thou shalt confess with thy mouth the Lord Jesus, thou shalt be saved." — Romans 10:9',700,720);x.fillStyle='#94a3b8';x.font='22px Georgia,serif';x.fillText('Heaven rejoices — Luke 15:7  ·  The Great Commission',700,840);c.toBlob(b=>dl(b,'My_New_Birth_Certificate.png'))};
+W.resetToHome=()=>{Object.keys(doneMap).forEach(k=>{});localStorage.removeItem('gc_done');location.reload()};
 
-        video.addEventListener('seeking', () => {
-            if (video.currentTime > maxTimeWatched) {
-                video.currentTime = maxTimeWatched;
-            }
-        });
+/* ================= Admin: auth ================= */
+W.toggleAdmin=s=>{if(s){hide('entrance');hide('user-section');show('admin-section');if(auth.currentUser)enterDash(auth.currentUser.email);window.scrollTo(0,0)}else{show('entrance');show('user-section');hide('admin-section')}};
+W.doAdminLogin=async()=>{try{const c=await signInWithEmailAndPassword(auth,$('aEmail').value.trim(),$('aPass').value);$('aPass').value='';await enterDash(c.user.email)}catch(e){toast('Access denied',true)}};
+W.logout=async()=>{await signOut(auth);location.reload()};
+async function enterDash(email){
+  const em=(email||'').toLowerCase();let isAdm=false,pd=null;try{isAdm=(await getDoc(doc(db,'admins',em))).exists()}catch(e){}try{const d=await getDoc(doc(db,'pastors',em));if(d.exists())pd={id:d.id,...d.data()}}catch(e){}
+  if(isAdm){currentRole='admin';myPastor=null;adminReady=true;$('dash-title').textContent='Kingdom Dashboard'}
+  else if(pd){currentRole='pastor';myPastor=pd;$('dash-title').textContent='Pastor Dashboard · '+(pd.region||'')}
+  else{await signOut(auth);toast('This account has no admin or pastor access. Ask the administrator to register you.',true);return}
+  hide('admin-login');show('admin-dash');buildTabs();startLive();
+  $('fStatus').innerHTML='<option value="">All statuses</option>'+STATUSES.map(s=>`<option>${s}</option>`).join('');
+  $('mapLegend').innerHTML=STATUSES.map(s=>`<span><i style="background:${SCOL[s]}"></i>${s}</span>`).join('')+'<span>✝️ pastor</span>';
+  const cld=getCld();$('cldName').value=cld.name;$('cldPreset').value=cld.preset;
+  loadAdminContent();showTab('overview');
+}
+function buildTabs(){const all=[['overview','Overview'],['souls','Souls & Follow-up'],['reports','Reports'],['followup','Messaging'],['pastors','Pastors'],['videos','Videos'],['scriptures','Scriptures'],['prayer','Prayer'],['settings','Settings']];
+  const allow=currentRole==='admin'?all:all.filter(t=>['overview','souls','reports','followup'].includes(t[0]));
+  $('tabBar').innerHTML=allow.map(t=>`<button class="tab" data-t="${t[0]}" onclick="showTab('${t[0]}')">${t[1]}</button>`).join('')}
+W.showTab=t=>{document.querySelectorAll('.tab-panel').forEach(p=>p.classList.add('hidden'));$('tab-'+t).classList.remove('hidden');document.querySelectorAll('#tabBar .tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  if(t==='pastors')setTimeout(initPastorMap,100);if(t==='reports')renderReport();if(t==='overview')renderOverview();if(t==='videos')renderVideoList();if(t==='scriptures')renderScriptureTable();if(t==='prayer')$('prayerEdit').value=prayerText;setTimeout(()=>map&&map.invalidateSize(),100)};
 
-        video.addEventListener('ended', () => {
-            document.getElementById('videoStatus').innerText = "Video complete. Please answer the question below:";
-            document.getElementById('beliefChoice').classList.remove('hidden');
-        });
-    }
+/* ================= Admin: live data ================= */
+function startLive(){unsubSouls.forEach(u=>u());unsubSouls=[];const store=new Map();
+  const upd=()=>{harvestData=[...store.values()].sort((a,b)=>tsOf(b)-tsOf(a));applyFilters()};
+  const sub=q=>onSnapshot(q,snap=>{snap.docChanges().forEach(c=>{if(c.type==='removed')store.delete(c.doc.id);else store.set(c.doc.id,{id:c.doc.id,...c.doc.data()})});upd()},e=>toast('Souls: '+e.message,true));
+  if(currentRole==='pastor'){unsubSouls.push(sub(query(collection(db,'souls'),where('pastorId','==',myPastor.id))))}
+  else unsubSouls.push(sub(query(collection(db,'souls'),orderBy('timestamp','desc'))))}
+W.setRange=r=>{range=r;document.querySelectorAll('[data-r]').forEach(b=>b.classList.toggle('on',b.dataset.r===r));applyFilters()};
+W.applyFilters=()=>{const now=Date.now(),reg=$('fRegion').value.toLowerCase().trim(),st=$('fStatus').value,f=$('fFrom').value,t=$('fTo').value;
+  viewData=harvestData.filter(s=>{const ms=tsOf(s);
+    if(range==='today'&&ymd(ms)!==ymd(now))return false;if(range==='7'&&ms<now-7*864e5)return false;if(range==='30'&&ms<now-30*864e5)return false;
+    if(range==='custom'){const d=ymd(ms);if(f&&d<f)return false;if(t&&d>t)return false}
+    if(reg&&!((s.country||'')+' '+(s.location||'')).toLowerCase().includes(reg))return false;if(st&&(s.status||'new')!==st)return false;return true});
+  renderMap(viewData);renderOverview();renderSouls();renderPastorTable();if(!$('tab-reports').classList.contains('hidden'))renderReport()};
+function computeStats(d=viewData){const now=Date.now(),reg={},st={},ph=Array(24).fill(0),pm={};
+  d.forEach(s=>{const r=s.country||'Global';reg[r]=(reg[r]||0)+1;const x=s.status||'new';st[x]=(st[x]||0)+1;ph[new Date(tsOf(s)).getHours()]++;if(s.pastorId)pm[s.pastorId]=(pm[s.pastorId]||0)+1});
+  const days=[];for(let i=13;i>=0;i--){const t=now-i*864e5;days.push({k:ymd(t),l:new Date(t).getDate()+'/'+(new Date(t).getMonth()+1),v:0})}harvestData.forEach(s=>{const x=days.find(y=>y.k===ymd(tsOf(s)));if(x)x.v++});
+  return{total:d.length,today:harvestData.filter(s=>ymd(tsOf(s))===ymd(now)).length,week:harvestData.filter(s=>tsOf(s)>=now-7*864e5).length,regions:Object.entries(reg).sort((a,b)=>b[1]-a[1]),status:st,hours:ph,days,pm,unassigned:d.filter(s=>!s.pastorId).length}}
+const mk=(id,cfg)=>{if(charts[id])charts[id].destroy();const el=$(id);if(!el)return;charts[id]=new Chart(el,cfg)};
+function renderOverview(){if(!$('kpis'))return;const s=computeStats();
+  $('kpis').innerHTML=[['Souls (filtered)',s.total],["Today's harvest",s.today],['Last 7 days',s.week],['Regions',s.regions.length],['Unassigned',s.unassigned],['Discipled',(s.status.discipled||0)+(s.status.baptized||0)]].map(k=>`<div class="stat-card">${k[0]}<span class="stat-val">${k[1]}</span></div>`).join('');
+  if($('tab-overview').classList.contains('hidden'))return;const opt={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#cbd5e1'}}},scales:{x:{ticks:{color:'#94a3b8'}},y:{ticks:{color:'#94a3b8',precision:0},beginAtZero:true}}};
+  mk('cRegion',{type:'bar',data:{labels:s.regions.slice(0,10).map(r=>r[0]),datasets:[{label:'Souls',data:s.regions.slice(0,10).map(r=>r[1]),backgroundColor:'#f1c40f'}]},options:opt});
+  mk('cDaily',{type:'line',data:{labels:s.days.map(d=>d.l),datasets:[{label:'Decisions',data:s.days.map(d=>d.v),borderColor:'#27ae60',backgroundColor:'rgba(39,174,96,.2)',fill:true,tension:.3}]},options:opt});
+  mk('cStatus',{type:'doughnut',data:{labels:STATUSES,datasets:[{data:STATUSES.map(x=>s.status[x]||0),backgroundColor:STATUSES.map(x=>SCOL[x])}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#cbd5e1'}}}}});
+  mk('cHours',{type:'bar',data:{labels:s.hours.map((_,i)=>i+':00'),datasets:[{label:'Decisions',data:s.hours,backgroundColor:'#3b82f6'}]},options:opt})}
+W.renderSouls=()=>{const q=($('soulSearch').value||'').toLowerCase();const l=viewData.filter(s=>!q||[s.name,s.phone,s.email,s.country,s.location,s.pastorName].some(x=>(x||'').toLowerCase().includes(q)));
+  $('soulBody').innerHTML=l.map(s=>`<tr class="click" onclick="openSoul('${s.id}')"><td><b>${esc(s.name)}</b></td><td>${esc(s.country||'')}<br><span class="muted">${esc(s.location||'')}</span></td><td>${esc(s.phone)}<br><span class="muted">${esc(s.email||'')}</span></td><td>${esc(s.pastorName||'—')}</td><td>${esc(s.status||'new')}</td><td>${new Date(tsOf(s)).toLocaleDateString()}</td></tr>`).join('')||'<tr><td colspan="6" class="muted">No souls match.</td></tr>'};
+W.openSoul=id=>{const s=harvestData.find(x=>x.id===id);if(!s)return;const wa=`https://wa.me/${String(s.phone||'').replace(/\D/g,'')}?text=${encodeURIComponent('Shalom '+s.name+', God bless you! Congratulations on giving your life to Jesus.')}`;
+  $('soulModalBody').innerHTML=`<h2 class="gold" style="margin-bottom:4px">${esc(s.name)}</h2><p class="muted" style="margin-top:0">${esc(s.location||s.country||'')} · ${new Date(tsOf(s)).toLocaleString()}</p>
+  <p><b>Phone:</b> ${esc(s.phone)}<br><b>Email:</b> ${esc(s.email||'—')}<br><b>Coordinates:</b> ${s.geo?(+s.lat).toFixed(4)+', '+(+s.lng).toFixed(4):'not available'}</p>
+  <div class="row nogrow" style="margin-bottom:12px"><a class="btn btn-success btn-sm" href="${wa}" target="_blank" rel="noopener" style="text-decoration:none">WhatsApp</a><a class="btn btn-sm" href="tel:${esc(s.phone)}" style="text-decoration:none">Call</a>${s.email?`<a class="btn btn-sm" href="mailto:${esc(s.email)}" style="text-decoration:none">Email</a>`:''}</div>
+  <label class="gold" style="font-size:.7rem;font-weight:800;text-transform:uppercase">Status</label><select id="mStatus">${STATUSES.map(x=>`<option ${x===(s.status||'new')?'selected':''}>${x}</option>`).join('')}</select>
+  ${currentRole==='admin'?`<label class="gold" style="font-size:.7rem;font-weight:800;text-transform:uppercase">Assigned pastor</label><select id="mPastor"><option value="">— none —</option>${pastors.map(p=>`<option value="${p.id}" ${p.id===s.pastorId?'selected':''}>${esc(p.name)} · ${esc(p.region||'')}</option>`).join('')}</select>`:''}
+  <label class="gold" style="font-size:.7rem;font-weight:800;text-transform:uppercase">Notes</label><textarea id="mNotes">${esc(s.notes||'')}</textarea>
+  <div class="row"><button class="btn btn-gold" onclick="saveSoul('${s.id}')">Save</button><button class="btn" onclick="closeSoul()">Close</button></div>
+  ${currentRole==='admin'?`<button class="link red" onclick="deleteSoul('${s.id}')">Delete record</button>`:''}`;show('soulModal')};
+W.closeSoul=()=>hide('soulModal');$('soulModal').addEventListener('click',e=>{if(e.target.id==='soulModal')closeSoul()});
+W.saveSoul=id=>guard(async()=>{const patch={status:$('mStatus').value,notes:$('mNotes').value};if($('mPastor')){const p=pastors.find(x=>x.id===$('mPastor').value);patch.pastorId=p?p.id:'';patch.pastorName=p?p.name:''}await updateDoc(doc(db,'souls',id),patch);toast('Saved');closeSoul()});
+W.deleteSoul=id=>guard(async()=>{if(confirm('Permanently delete this record?')){await deleteDoc(doc(db,'souls',id));closeSoul()}});
 
-    window.startJourney = () => { 
-        isUserPath = true; 
-        window.autoDetectLocation();
-        playJesusIsLordLoop(7, () => {
-            playScriptureSequence();
-        }); 
-    };
+/* ================= Exports & reports ================= */
+const csvCell=v=>{let s=String(v??'');if(/^[=+\-@]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'};
+W.exportCSV=()=>{if(!viewData.length)return toast('No records to export',true);const h=['Name','Phone','Email','Region','Location','Latitude','Longitude','Status','Pastor','Notes','Date'];
+  dl(new Blob(['\ufeff'+h.join(',')+'\n'+viewData.map(s=>[s.name,s.phone,s.email,s.country,s.location,s.lat,s.lng,s.status||'new',s.pastorName,s.notes,new Date(tsOf(s)).toLocaleString()].map(csvCell).join(',')).join('\n')],{type:'text/csv;charset=utf-8'}),'Kingdom_Harvest_Report_'+ymd(Date.now())+'.csv')};
+W.exportJSON=()=>dl(new Blob([JSON.stringify(viewData,null,2)],{type:'application/json'}),'souls_'+ymd(Date.now())+'.json');
+const summary=()=>{const s=computeStats();return`THE GREAT COMMISSION: HARVEST REPORT\nGenerated: ${new Date().toLocaleString()}\nTotal souls (filtered): ${s.total}\nToday: ${s.today}   Last 7 days: ${s.week}\nRegions: ${s.regions.length}\nUnassigned: ${s.unassigned}\n\nBy region:\n`+s.regions.map(r=>` - ${r[0]}: ${r[1]}`).join('\n')+'\n\nPipeline:\n'+STATUSES.map(x=>` - ${x}: ${s.status[x]||0}`).join('\n')+'\n\nPastors:\n'+pastors.map(p=>` - ${p.name} (${p.region}): ${s.pm[p.id]||0}`).join('\n')};
+W.exportTXT=()=>dl(new Blob([summary()],{type:'text/plain'}),'report_'+ymd(Date.now())+'.txt');
+W.shareReport=async()=>{const t=summary();if(navigator.share){try{await navigator.share({title:'Harvest Report',text:t});return}catch(e){}}try{await navigator.clipboard.writeText(t);toast('Summary copied')}catch(e){window.open('https://wa.me/?text='+encodeURIComponent(t))}};
+function renderReport(){const s=computeStats();$('reportBody').innerHTML=`<h2 class="gold">Salvation Report</h2><p class="muted">Generated ${new Date().toLocaleString()}</p>
+  <div class="stats-grid">${[['Total souls',s.total],['Regions',s.regions.length],['Discipled',(s.status.discipled||0)+(s.status.baptized||0)],['Unassigned',s.unassigned]].map(k=>`<div class="stat-card">${k[0]}<span class="stat-val">${k[1]}</span></div>`).join('')}</div>
+  <h4 class="gold">Pipeline</h4><p>${STATUSES.map(x=>`${x}: <b>${s.status[x]||0}</b>`).join(' &nbsp;·&nbsp; ')}</p>
+  <h4 class="gold">By region</h4><table class="crud-table"><thead><tr><th>Region</th><th>Souls</th></tr></thead><tbody>${s.regions.map(r=>`<tr><td>${esc(r[0])}</td><td>${r[1]}</td></tr>`).join('')}</tbody></table>
+  <h4 class="gold">By pastor</h4><table class="crud-table"><thead><tr><th>Pastor</th><th>Region</th><th>Souls</th></tr></thead><tbody>${pastors.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.region||'')}</td><td>${s.pm[p.id]||0}</td></tr>`).join('')}</tbody></table>`}
 
-    function playJesusIsLordLoop(times, callback) {
-        let count = 0;
-        const speakLoop = () => {
-            if (count < times) {
-                const msg = new SpeechSynthesisUtterance("Jesus is Lord");
-                const voices = window.speechSynthesis.getVoices();
-                const maleVoice = voices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('james'));
-                if (maleVoice) msg.voice = maleVoice;
-                msg.onend = () => {
-                    count++;
-                    speakLoop();
-                };
-                msg.onerror = () => {
-                    count++;
-                    speakLoop();
-                };
-                window.speechSynthesis.speak(msg);
-            } else {
-                if(callback) callback();
-            }
-        };
+/* ================= Follow-up ================= */
+W.resetWAQueue=()=>{waQueue=0;$('waProg').textContent=''};
+W.nextWhatsApp=()=>{const l=viewData.filter(s=>s.phone);if(!l.length)return toast('No contacts in this filter',true);if(waQueue>=l.length){waQueue=0;toast('All done 🎉')}
+  const s=l[waQueue++];if(!s)return;const m=$('fuMsg').value.replace(/\{name\}/g,s.name);window.open(`https://wa.me/${String(s.phone).replace(/\D/g,'')}?text=${encodeURIComponent(m)}`,'_blank');$('waProg').textContent=`Opened ${waQueue} of ${l.length}: ${s.name}`};
+W.emailAll=()=>{const e=viewData.map(s=>s.email).filter(Boolean);if(!e.length)return toast('No emails on file',true);location.href=`mailto:?bcc=${encodeURIComponent(e.join(','))}&subject=${encodeURIComponent('Welcome to the family of God')}&body=${encodeURIComponent($('fuMsg').value.replace(/\{name\}/g,'friend'))}`};
 
-        if (speechSynthesis.getVoices().length === 0) {
-            window.speechSynthesis.onvoiceschanged = speakLoop;
-        } else {
-            speakLoop();
-        }
-    }
+/* ================= Pastors ================= */
+let pastorForm={id:null,lat:null,lng:null,country:''};
+onSnapshot(collection(db,'pastors'),s=>{pastors=s.docs.map(d=>({id:d.id,...d.data()}));renderPastorTable();if(currentRole==='admin'&&map&&pastorLayer)renderMap(viewData);if(adminReady)migrateLegacy()},e=>console.warn('Pastors not readable yet (check Firestore rules):',e.code));
+function renderPastorTable(){const b=$('pTableBody');if(!b)return;const pm=computeStats(harvestData).pm;
+  b.innerHTML=pastors.map(p=>`<tr><td><b>${esc(p.name)}</b><br><span class="muted">${esc(p.church||'')}</span></td><td>${esc(p.region||'')}<br><span class="muted">${esc(p.country||'')}</span></td><td>${esc(p.phone||'')}<br><span class="muted">${esc(p.email||'')}</span></td><td>${pm[p.id]||0}</td><td style="white-space:nowrap"><button class="link" onclick="editPastor('${p.id}')">Edit</button><button class="link" onclick="issueFor('${esc(p.id)}')">Login&nbsp;+&nbsp;WhatsApp</button><button class="link red" onclick="deletePastor('${esc(p.id)}')">Del</button></td></tr>`).join('')||'<tr><td colspan="5" class="muted">No pastors registered yet.</td></tr>'}
+function initPastorMap(){const el=$('pastorMap');if(adminPastorMap){adminPastorMap.remove();adminPastorMap=null;apMarker=null}
+  adminPastorMap=L.map(el).setView(pastorForm.lat!=null?[pastorForm.lat,pastorForm.lng]:[5,20],pastorForm.lat!=null?10:2);tile(adminPastorMap);
+  pastors.filter(p=>typeof p.lat==='number'&&p.id!==pastorForm.id).forEach(p=>L.marker([p.lat,p.lng],{icon:pastorIcon(),opacity:.6}).addTo(adminPastorMap).bindPopup(esc(p.name)+' · '+esc(p.region||'')));
+  if(pastorForm.lat!=null)placeAP(pastorForm.lat,pastorForm.lng);
+  adminPastorMap.on('click',e=>{placeAP(e.latlng.lat,e.latlng.lng);setPastorPos(e.latlng.lat,e.latlng.lng,true)});setTimeout(()=>adminPastorMap.invalidateSize(),200)}
+function placeAP(lat,lng){if(apMarker)adminPastorMap.removeLayer(apMarker);apMarker=L.marker([lat,lng],{draggable:true}).addTo(adminPastorMap);apMarker.on('dragend',e=>setPastorPos(e.target.getLatLng().lat,e.target.getLatLng().lng,true))}
+async function setPastorPos(lat,lng,rev){pastorForm.lat=lat;pastorForm.lng=lng;if(rev){const g=await reverseGeo(lat,lng);pastorForm.country=g.country;if(!$('pReg').value)$('pReg').value=[g.city||g.region,g.country].filter(Boolean).join(', ')}$('pCoord').textContent=`Detected: ${lat.toFixed(4)}, ${lng.toFixed(4)} · ${pastorForm.country||''}`}
+let rt;W.debounceRegion=()=>{clearTimeout(rt);rt=setTimeout(detectRegion,900)};
+W.detectRegion=async()=>{const q=$('pReg').value.trim();if(q.length<3)return;$('btnDetect').textContent='…';const r=await forwardGeo(q);$('btnDetect').textContent='Detect';
+  if(!r.length){$('regionAlt').innerHTML='';return toast('Region not found. Click the map to place it.',true)}
+  $('regionAlt').innerHTML=r.length>1?r.map((x,i)=>`<button class="chip" onclick="pickRegion(${i})">${esc(x.display_name.slice(0,55))}</button>`).join(''):'';W._regionRes=r;pickRegion(0)};
+W.pickRegion=i=>{const r=W._regionRes[i],lat=+r.lat,lng=+r.lon;pastorForm.lat=lat;pastorForm.lng=lng;pastorForm.country=(r.address||{}).country||'';$('pCoord').textContent=`Detected: ${lat.toFixed(4)}, ${lng.toFixed(4)} · ${pastorForm.country}`;if(adminPastorMap){adminPastorMap.setView([lat,lng],10);placeAP(lat,lng)}};
+W.savePastor=()=>guard(async()=>{const name=$('pName').value.trim(),region=$('pReg').value.trim(),email=$('pEmail').value.trim().toLowerCase();if(!name||!region||!email)return toast('Name, login email and region are required',true);
+  const wantCreds=$('pCreds').checked;if(wantCreds&&!phoneOk($('pPhone').value))return toast('Phone must be international, e.g. +254712345678, to send credentials by WhatsApp',true);
+  const pendingWin=wantCreds?window.open('about:blank','_blank'):null;
+  if(pastorForm.lat==null){await detectRegion();if(pastorForm.lat==null){pendingWin&&pendingWin.close();return toast('Place the region on the map first',true)}}
+  const data={name,region,email,phone:$('pPhone').value.trim(),church:$('pChurch').value.trim(),country:pastorForm.country||'',lat:pastorForm.lat,lng:pastorForm.lng};
+  const oldId=pastorForm.id;
+  await setDoc(doc(db,'pastors',email),data); // document ID = login email (used by the security rules)
+  if(oldId&&oldId!==email){const ss=await getDocs(query(collection(db,'souls'),where('pastorId','==',oldId)));for(const s of ss.docs)await updateDoc(s.ref,{pastorId:email,pastorName:name});await deleteDoc(doc(db,'pastors',oldId))}
+  toast('Pastor saved');
+  if(wantCreds)await issueCredentials({...data,id:email},pendingWin);else pendingWin&&pendingWin.close();
+  resetPastorForm()});
+W.resetPastorForm=()=>{pastorForm={id:null,lat:null,lng:null,country:''};['pName','pReg','pEmail','pPhone','pChurch'].forEach(i=>$(i).value='');$('regionAlt').innerHTML='';$('pFormTitle').textContent='Register Pastor by Region';$('btnSavePastor').textContent='Register Pastor';$('pCreds').checked=true;hide('btnCancelPastor');$('pCoord').textContent='Type a region or click the map to place the pin. Drag to fine-tune.';initPastorMap()};
+W.editPastor=id=>{const p=pastors.find(x=>x.id===id);pastorForm={id,lat:p.lat,lng:p.lng,country:p.country||''};$('pName').value=p.name;$('pReg').value=p.region||'';$('pEmail').value=p.email||'';$('pPhone').value=p.phone||'';$('pChurch').value=p.church||'';$('pFormTitle').textContent='Edit Pastor';$('pCreds').checked=false;$('btnSavePastor').textContent='Update Pastor';show('btnCancelPastor');initPastorMap();$('tab-pastors').scrollIntoView({behavior:'smooth'})};
+W.deletePastor=id=>guard(async()=>{if(confirm('Remove this pastor? Their dashboard access ends immediately. Also delete their login under Firebase → Authentication.'))await deleteDoc(doc(db,'pastors',id))});
 
-    function playScriptureSequence() {
-        renderScripture();
-        document.getElementById('gate-scripture').classList.remove('hidden');
-        startScriptureRecognition();
-    }
+/* ---- Pastor logins & WhatsApp credentials ---- */
+const genPw=()=>{const a='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789',b=new Uint32Array(12);crypto.getRandomValues(b);return Array.from(b,x=>a[x%a.length]).join('')+'#7'};
+const phoneOk=p=>/^\+\d{8,15}$/.test((p||'').replace(/[\s()-]/g,''));
+const loginUrl=()=>location.origin+location.pathname;
+function credMsg(p,pw){return `Shalom Pastor ${p.name}, you have been registered as a counselor for ${p.region} on The Great Commission harvest portal.\n\nLogin page: ${loginUrl()}\nEmail: ${p.email}\n`+(pw?`Temporary password: ${pw}\n\nTap "Administrator Access" at the bottom of the page, sign in, then choose "Change my password" straight away.`:`\nYour login already exists. Sign in with your current password, or tap "Forgot password?" on the login screen.`)+`\n\nSouls near you will be assigned to you automatically. God bless you!`}
+async function issueCredentials(p,win){
+  if(!phoneOk(p.phone)){win&&win.close();return toast('Pastor phone must be international, e.g. +254712345678',true)}
+  let pw=null,existed=false;const candidate=genPw();
+  try{await createUserWithEmailAndPassword(auth2,p.email,candidate);pw=candidate;await signOut(auth2)}
+  catch(e){if(e.code==='auth/email-already-in-use')existed=true;else{win&&win.close();throw e}}
+  let mailed=false;try{await sendPasswordResetEmail(auth,p.email);mailed=true}catch(e){}
+  const msg=credMsg(p,pw),wa='https://wa.me/'+String(p.phone).replace(/\D/g,'')+'?text='+encodeURIComponent(msg);
+  if(win&&!win.closed)win.location.href=wa;
+  showCreds(p,pw,msg,wa,existed,mailed)}
+function showCreds(p,pw,msg,wa,existed,mailed){
+  $('credBody').innerHTML=`<h2 class="gold">Credentials for ${esc(p.name)}</h2>
+  <p class="muted" style="font-size:.85rem">${existed?'This email already had a login, so no new password was created.':'Login account created.'} ${mailed?'A password-setup email was also sent to '+esc(p.email)+'.':''}</p>
+  <div class="sub-card"><b>Email:</b> ${esc(p.email)}<br>${pw?`<b>Temporary password:</b> <code style="font-size:1.1rem;color:var(--gold)">${esc(pw)}</code>`:'<span class="muted">No new password</span>'}</div>
+  <p class="muted" style="font-size:.78rem">The password is shown only now and is not stored anywhere. WhatsApp opens with the message ready, so press Send there. If it didn't open, tap the button below.</p>
+  <div class="row"><a class="btn btn-success" href="${wa}" target="_blank" rel="noopener" style="text-decoration:none;text-align:center">Send via WhatsApp</a><button class="btn" id="credCopy">Copy message</button><button class="btn" onclick="closeCreds()">Done</button></div>`;
+  $('credCopy').onclick=async()=>{try{await navigator.clipboard.writeText(msg);toast('Message copied')}catch(e){toast('Copy failed',true)}};show('credModal')}
+W.closeCreds=()=>hide('credModal');
+W.issueFor=id=>{const p=pastors.find(x=>x.id===id);if(!p)return;if(!phoneOk(p.phone))return toast('Edit this pastor and add a WhatsApp number like +254712345678 first',true);const w=window.open('about:blank','_blank');guard(async()=>issueCredentials(p,w))};
+W.forgotPassword=async()=>{const e=$('aEmail').value.trim();if(!e)return toast('Type your email first',true);try{await sendPasswordResetEmail(auth,e)}catch(x){}toast('If that email has an account, a reset link has been sent')};
+W.changePw=()=>{$('credBody').innerHTML=`<h2 class="gold">Change password</h2><input type="password" id="npw1" placeholder="New password (8+ characters)" autocomplete="new-password"><input type="password" id="npw2" placeholder="Repeat new password" autocomplete="new-password"><div class="row"><button class="btn btn-gold" onclick="doChangePw()">Update</button><button class="btn" onclick="closeCreds()">Cancel</button></div>`;show('credModal')};
+W.doChangePw=async()=>{const a=$('npw1').value,b=$('npw2').value;if(a.length<8||a!==b)return toast('Passwords must match and be 8+ characters',true);try{await updatePassword(auth.currentUser,a);toast('Password updated');closeCreds()}catch(e){toast(e.code==='auth/requires-recent-login'?'For security, log out, log in again, then retry':e.message,true)}};
+async function migrateLegacy(){if(!adminReady||migrating)return;const old=pastors.filter(p=>p.email&&p.id!==p.email.toLowerCase());if(!old.length)return;migrating=true;
+  try{for(const p of old){const id=p.email.toLowerCase();const {id:_i,...data}=p;await setDoc(doc(db,'pastors',id),{...data,email:id});const ss=await getDocs(query(collection(db,'souls'),where('pastorId','==',p.id)));for(const s of ss.docs)await updateDoc(s.ref,{pastorId:id});await deleteDoc(doc(db,'pastors',p.id))}toast(old.length+' older pastor record(s) upgraded')}catch(e){console.warn('migrate',e)}migrating=false}
+W.reassignAll=()=>guard(async()=>{let n=0;for(const s of harvestData.filter(s=>!s.pastorId&&s.geo&&typeof s.lat==='number')){const p=nearest(s.lat,s.lng);if(p){await updateDoc(doc(db,'souls',s.id),{pastorId:p.id,pastorName:p.name});n++}}toast(n+' souls assigned')});
 
-    function renderScripture() {
-        scriptureWordsSet.clear();
-        document.getElementById('scriptureBar').style.width = '0%';
-        document.getElementById('btnNextScripture').disabled = true;
-        const item = scriptures[currentScriptureIdx];
-        document.getElementById('scriptureText').innerHTML = `<span class="scripture-highlight">"${item.text}"</span><br><br><small>— ${item.ref}</small>`;
-    }
+/* ================= Videos ================= */
+onSnapshot(collection(db,'videos'),s=>{dbVideos=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.order||0)-(b.order||0));rebuildVideos();renderVideoList()},e=>console.warn('Videos not readable yet (check Firestore rules):',e.code));
+getDoc(doc(db,'config','video')).then(d=>{if(d.exists()&&d.data().url){legacyVideo=d.data().url;rebuildVideos()}}).catch(()=>{});
+rebuildVideos();
+let editVideoId=null;
+function renderVideoList(){const l=$('vList');if(!l)return;l.innerHTML=dbVideos.map((v,i)=>`<div class="sub-card row" style="align-items:center"><div style="flex:3 1 220px;min-width:0"><b>${esc(v.title||v.url)}</b> ${v.required===false?'<span class="muted">(optional)</span>':'<span class="gold">(required)</span>'}<br><span class="muted" style="font-size:.72rem;word-break:break-all">${esc(v.url)}</span></div><div style="flex:2 1 180px;white-space:nowrap"><button class="link" onclick="previewVideo('${v.id}')">Preview</button><button class="link" onclick="moveVideo('${v.id}',-1)">↑</button><button class="link" onclick="moveVideo('${v.id}',1)">↓</button><button class="link" onclick="editVideo('${v.id}')">Edit</button><button class="link red" onclick="deleteVideo('${v.id}')">Del</button></div></div>`).join('')||`<p class="muted">No videos added yet${legacyVideo?' (using the legacy single video)':' (a sample video is used as fallback)'}.</p>`}
+W.previewVideo=id=>{const v=dbVideos.find(x=>x.id===id),y=ytId(v.url);$('adminPreview').innerHTML=y?`<iframe src="https://www.youtube.com/embed/${y}" allowfullscreen></iframe>`:`<video controls src="${esc(v.url)}"></video>`;show('adminPreviewContainer')};
+W.saveVideo=()=>guard(async()=>{const url=$('vUrl').value.trim();if(!/^https?:\/\//i.test(url))return toast('Enter a valid http(s) video URL',true);
+  const data={title:$('vTitle').value.trim()||'Salvation Video',description:$('vDesc').value.trim(),url,required:$('vReq').checked};
+  if(editVideoId)await updateDoc(doc(db,'videos',editVideoId),data);else await addDoc(collection(db,'videos'),{...data,order:Date.now()});toast('Video saved');resetVideoForm()});
+W.resetVideoForm=()=>{editVideoId=null;['vTitle','vDesc','vUrl'].forEach(i=>$(i).value='');$('adminVideoFile').value='';$('vReq').checked=true;$('vFormTitle').textContent='Add Salvation Video';hide('btnCancelVideo');$('uploadBar').style.width='0';$('uploadStatus').textContent=''};
+W.editVideo=id=>{const v=dbVideos.find(x=>x.id===id);editVideoId=id;$('vTitle').value=v.title||'';$('vDesc').value=v.description||'';$('vUrl').value=v.url;$('vReq').checked=v.required!==false;$('vFormTitle').textContent='Edit Video';show('btnCancelVideo');$('tab-videos').scrollIntoView({behavior:'smooth'})};
+W.deleteVideo=id=>guard(async()=>{if(confirm('Delete this video?'))await deleteDoc(doc(db,'videos',id))});
+W.moveVideo=(id,d)=>guard(async()=>{const i=dbVideos.findIndex(v=>v.id===id),j=i+d;if(j<0||j>=dbVideos.length)return;const a=dbVideos[i],b=dbVideos[j];await updateDoc(doc(db,'videos',a.id),{order:b.order||j});await updateDoc(doc(db,'videos',b.id),{order:a.order||i})});
+const getCld=()=>({name:localStorage.gc_cld_name||'saqv9tcx',preset:localStorage.gc_cld_preset||'dyndj6gw'});
+W.saveCld=()=>{localStorage.gc_cld_name=$('cldName').value.trim();localStorage.gc_cld_preset=$('cldPreset').value.trim();toast('Saved')};
+W.uploadVideoFile=()=>{const f=$('adminVideoFile').files[0];if(!f)return toast('Choose a video file first',true);const c=getCld();if(!c.name||!c.preset)return toast('Set Cloudinary settings first',true);
+  const fd=new FormData();fd.append('file',f);fd.append('upload_preset',c.preset);const x=new XMLHttpRequest();x.open('POST',`https://api.cloudinary.com/v1_1/${c.name}/video/upload`,true);
+  x.upload.onprogress=e=>{if(e.lengthComputable){const p=e.loaded/e.total*100;$('uploadBar').style.width=p+'%';$('uploadStatus').textContent='Uploading: '+Math.round(p)+'%'}};
+  x.onload=async()=>{if(x.status===200){const r=JSON.parse(x.responseText);$('vUrl').value=r.secure_url;if(!$('vTitle').value)$('vTitle').value=f.name.replace(/\.[^.]+$/,'');$('uploadStatus').textContent='Uploaded ✓ saving…';await saveVideo()}else{toast('Upload failed. Check Cloudinary settings.',true);$('uploadStatus').textContent='Upload failed'}};
+  x.onerror=()=>toast('Network error during upload',true);x.send(fd)};
 
-    function startScriptureRecognition() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if(!SpeechRecognition) { document.getElementById('btnNextScripture').disabled = false; return; }
-        
-        if(recognition) {
-            try { recognition.stop(); } catch(e){}
-        }
-        
-        recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
+/* ================= Scriptures & prayer ================= */
+onSnapshot(collection(db,'scriptures'),s=>{dbScriptures=s.docs.map(d=>({id:d.id,cat:'Salvation',...d.data()})).sort((a,b)=>(a.order||0)-(b.order||0));rebuildScriptures();renderScriptureTable()},()=>{});
+onSnapshot(doc(db,'config','prayer'),d=>{if(d.exists()&&d.data().text){prayerText=d.data().text}else prayerText=DEFAULT_PRAYER},()=>{});
+rebuildScriptures();
+let editS=null;
+function renderScriptureTable(){const t=$('sTable');if(!t)return;const l=dbScriptures.length?dbScriptures:DEFAULT_SCRIPTURES;$('btnSeed').classList.toggle('hidden',dbScriptures.length>0);
+  t.innerHTML=l.map(s=>`<tr><td>${esc(s.cat)}</td><td>${esc(s.ref)}</td><td style="max-width:360px">${esc(s.text)}</td><td style="white-space:nowrap">${dbScriptures.length?`<button class="link" onclick="editScripture('${s.id}')">Edit</button><button class="link red" onclick="deleteScripture('${s.id}')">Del</button>`:'<span class="muted">default</span>'}</td></tr>`).join('')}
+W.saveScripture=()=>guard(async()=>{const text=$('sTextIn').value.trim();if(!text)return toast('Enter the scripture text',true);const d={text,ref:$('sRefIn').value.trim(),cat:$('sCatSel').value};
+  if(editS)await updateDoc(doc(db,'scriptures',editS),d);else await addDoc(collection(db,'scriptures'),{...d,order:Date.now()});toast('Scripture saved');resetScriptureForm()});
+W.resetScriptureForm=()=>{editS=null;$('sTextIn').value='';$('sRefIn').value='';$('sFormTitle').textContent='Add Scripture';hide('btnCancelS')};
+W.editScripture=id=>{const s=dbScriptures.find(x=>x.id===id);editS=id;$('sTextIn').value=s.text;$('sRefIn').value=s.ref;$('sCatSel').value=s.cat;$('sFormTitle').textContent='Edit Scripture';show('btnCancelS');$('tab-scriptures').scrollIntoView({behavior:'smooth'})};
+W.deleteScripture=id=>guard(async()=>{if(confirm('Delete this scripture?'))await deleteDoc(doc(db,'scriptures',id))});
+W.seedScriptures=()=>guard(async()=>{let o=Date.now();for(const s of DEFAULT_SCRIPTURES)await addDoc(collection(db,'scriptures'),{text:s.text,ref:s.ref,cat:s.cat,order:o++});toast('Default scriptures loaded')});
+W.savePrayer=()=>guard(async()=>{const t=$('prayerEdit').value.trim();if(!t)return toast('Prayer cannot be empty',true);await setDoc(doc(db,'config','prayer'),{text:t});toast('Prayer saved')});
+function loadAdminContent(){renderScriptureTable();renderVideoList();renderPastorTable()}
 
-        recognition.onresult = (event) => {
-            let t = ""; 
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                t += event.results[i][0].transcript.toLowerCase();
-            }
-            document.getElementById('sVoiceStatus').innerText = t;
-            
-            // Clean string to avoid punctuation mismatch
-            const cleanText = scriptures[currentScriptureIdx].text.toLowerCase().replace(/[^\w\s]/gi, '');
-            const words = cleanText.split(/\s+/).filter(w => w.length > 1);
-            
-            words.forEach(w => { if(t.includes(w)) scriptureWordsSet.add(w); });
-            
-            const pct = Math.min(100, Math.round((scriptureWordsSet.size / words.length) * 100));
-            document.getElementById('scriptureBar').style.width = pct + "%";
-            
-            // Unlocks button easily once 35% or more words are spoken correctly
-            if (pct >= 35 || scriptureWordsSet.size >= 4) {
-                document.getElementById('btnNextScripture').disabled = false;
-            }
-        };
-
-        recognition.onerror = () => {
-            document.getElementById('btnNextScripture').disabled = false;
-        };
-
-        recognition.onend = () => { 
-            if(document.getElementById('btnNextScripture').disabled && !document.getElementById('gate-scripture').classList.contains('hidden')) {
-                try { recognition.start(); } catch(e){}
-            }
-        };
-        
-        try { recognition.start(); } catch(e){
-            document.getElementById('btnNextScripture').disabled = false;
-        }
-    }
-
-    window.nextScripture = () => {
-        if(currentScriptureIdx < scriptures.length - 1) {
-            currentScriptureIdx++;
-            renderScripture();
-            startScriptureRecognition();
-        } else {
-            if(recognition) {
-                try { recognition.stop(); } catch(e){}
-            }
-            document.getElementById('gate-scripture').classList.add('hidden');
-            showVideoGate();
-        }
-    };
-
-    window.prevScripture = () => {
-        if(currentScriptureIdx > 0) {
-            currentScriptureIdx--;
-            renderScripture();
-            startScriptureRecognition();
-        }
-    };
-
-    function showVideoGate() {
-        maxTimeWatched = 0;
-        document.getElementById('gate-video').classList.remove('hidden');
-        document.getElementById('salvationVideo').currentTime = 0;
-    }
-
-    window.handleBeliefChoice = (believes) => {
-        if (believes) {
-            showPrayerGate();
-        } else {
-            alert("Redirecting to the main page.");
-            window.location.reload();
-        }
-    };
-
-    window.showPrayerGate = () => {
-        document.getElementById('gate-video').classList.add('hidden');
-        document.getElementById('gate-prayer').classList.remove('hidden');
-        startPrayerRecognition();
-    };
-
-    function startPrayerRecognition() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if(!SpeechRecognition) { document.getElementById('btnAmen').disabled = false; return; }
-        
-        recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-
-        const cleanPrayer = document.getElementById('prayerText').innerText.toLowerCase().replace(/[^\w\s]/gi, '');
-        const words = cleanPrayer.split(/\s+/).filter(w => w.length > 1);
-
-        recognition.onresult = (event) => {
-            let t = ""; 
-            for (let i = event.resultIndex; i < event.results.length; ++i) t += event.results[i][0].transcript.toLowerCase();
-            document.getElementById('vStatus').innerText = t;
-            
-            words.forEach(w => { if(t.includes(w)) prayerWordsSet.add(w); });
-            
-            const pct = Math.min(100, Math.round((prayerWordsSet.size / words.length) * 100));
-            document.getElementById('voiceBar').style.width = pct + "%";
-            
-            if (pct >= 50 || t.includes("thank you jesus") || t.includes("saving me")) {
-                document.getElementById('btnAmen').disabled = false;
-            }
-        };
-        
-        recognition.onerror = () => {
-            document.getElementById('btnAmen').disabled = false;
-        };
-
-        recognition.onend = () => { 
-            if(document.getElementById('btnAmen').disabled && !document.getElementById('gate-prayer').classList.contains('hidden')) {
-                try { recognition.start(); } catch(e){}
-            }
-        };
-        
-        try { recognition.start(); } catch(e){
-            document.getElementById('btnAmen').disabled = false;
-        }
-    }
-
-    window.showForm = () => { 
-        if(recognition) {
-            try { recognition.stop(); } catch(e){}
-        } 
-        document.getElementById('gate-prayer').classList.add('hidden'); 
-        document.getElementById('wait-msg').classList.add('hidden'); 
-        document.getElementById('form-container').classList.remove('hidden'); 
-    };
-
-    window.submitToKingdom = async () => {
-        const n = document.getElementById('uName').value, p = document.getElementById('uPhone').value;
-        if(!n || !p) return alert("Please fill in your name and phone number.");
-        
-        const currentLat = autoLat !== 0 ? autoLat : 0;
-        const currentLng = autoLng !== 0 ? autoLng : 0;
-        let countryName = "Global";
-        
-        try {
-            const geo = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentLat}&lon=${currentLng}`).then(r => r.json());
-            if(geo && geo.address && geo.address.country) countryName = geo.address.country;
-        } catch(err) { console.log("Nominatim address conversion failed."); }
-        
-        await addDoc(collection(db, "souls"), { name: n, phone: p, lat: currentLat, lng: currentLng, country: countryName, timestamp: new Date().toISOString() });
-        
-        document.getElementById('form-container').classList.add('hidden'); 
-        document.getElementById('feedbackText').innerText = `Thank you, ${n}! Your decision for Christ has been registered. Please wait, a Pastor/Counselor from ${countryName} region will call you shortly to pray with you.`;
-        document.getElementById('thank-you-msg').classList.remove('hidden');
-    };
-
-    window.toggleAdmin = (s) => { 
-        isUserPath = !s; 
-        if(s) {
-            document.getElementById('entrance').classList.add('hidden');
-            document.getElementById('user-section').classList.add('hidden'); 
-            document.getElementById('admin-section').classList.remove('hidden'); 
-        } else {
-            document.getElementById('entrance').classList.remove('hidden');
-            document.getElementById('user-section').classList.remove('hidden'); 
-            document.getElementById('admin-section').classList.add('hidden'); 
-        }
-    };
-
-    window.doAdminLogin = async () => {
-        try {
-            await signInWithEmailAndPassword(auth, document.getElementById('aEmail').value, document.getElementById('aPass').value);
-            const pSnap = await getDocs(query(collection(db, "pastors"), where("email", "==", document.getElementById('aEmail').value.toLowerCase())));
-            if(!pSnap.empty) { currentRole = 'pastor'; assignedRegion = pSnap.docs[0].data().region; }
-            else { currentRole = 'admin'; document.getElementById('pastor-crud').classList.remove('hidden'); listenPastors(); }
-            document.getElementById('admin-login').classList.add('hidden'); 
-            document.getElementById('admin-dash').classList.remove('hidden');
-            startLiveDashboard();
-            window.loadActiveVideo();
-        } catch(e) { alert("Access Denied"); }
-    };
-
-    function startLiveDashboard() {
-        const qSnap = (currentRole === 'pastor') ? query(collection(db, "souls"), where("country", "==", assignedRegion)) : query(collection(db, "souls"), orderBy("timestamp", "desc"));
-        onSnapshot(qSnap, (snap) => {
-            harvestData = []; 
-            snap.forEach(d => harvestData.push({ id: d.id, ...d.data() }));
-            renderMapData(harvestData);
-        });
-    }
-
-    function renderMapData(data) {
-        clusterGroup.clearLayers(); 
-        let today = 0, tStr = new Date().toISOString().split('T')[0];
-        
-        data.forEach(s => {
-            if(s.timestamp && s.timestamp.startsWith(tStr)) today++;
-            const waLink = `https://wa.me/${s.phone.replace(/\D/g,'')}?text=${encodeURIComponent("Shalom " + s.name + ", God bless you!")}`;
-            const popupContent = `
-                <div style="color: #0f172a; font-family: sans-serif;">
-                    <h3 style="margin: 0 0 5px 0; color: #27ae60;">${s.name}</h3>
-                    <p style="margin:0 0 5px 0;"><b>Phone:</b> ${s.phone}</p>
-                    <p style="margin:0 0 5px 0;"><b>Region:</b> ${s.country || 'Global'}</p>
-                    <p style="margin:0 0 10px 0; font-size: 0.8rem; color: #64748b;">${new Date(s.timestamp).toLocaleString()}</p>
-                    <a href="${waLink}" target="_blank" style="background: #27ae60; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; display: inline-block; font-size: 0.8rem;">Contact via WhatsApp</a>
-                </div>`;
-            clusterGroup.addLayer(L.marker([s.lat, s.lng]).bindPopup(popupContent));
-        });
-        
-        document.getElementById('s-total').innerText = data.length; 
-        document.getElementById('s-today').innerText = today; 
-        updateChart(data);
-    }
-
-    window.applyMapFilters = () => {
-        let filtered = harvestData;
-        const dateVal = document.getElementById('exportDate').value;
-        const regionVal = document.getElementById('exportRegion').value.toLowerCase();
-
-        if (dateVal) filtered = filtered.filter(s => s.timestamp && s.timestamp.startsWith(dateVal));
-        if (regionVal) filtered = filtered.filter(s => s.country && s.country.toLowerCase().includes(regionVal));
-
-        renderMapData(filtered);
-    };
-
-    window.exportData = () => {
-        let f = harvestData; 
-        const d = document.getElementById('exportDate').value, r = document.getElementById('exportRegion').value.toLowerCase();
-        if(d) f = f.filter(s => s.timestamp && s.timestamp.startsWith(d)); 
-        if(r) f = f.filter(s => s.country && s.country.toLowerCase().includes(r));
-        
-        let csv = "Name,Phone,Region,Date\n" + f.map(s => `"${s.name}","${s.phone}","${s.country}","${s.timestamp}"`).join("\n");
-        const blob = new Blob([csv], {type: 'text/csv'}); 
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); 
-        a.href = url; 
-        a.download = `Kingdom_Harvest_Report.csv`; 
-        a.click();
-    };
-
-    function updateChart(data = harvestData) {
-        const regions = {}; 
-        data.forEach(s => { const reg = s.country || "Global"; regions[reg] = (regions[reg] || 0) + 1; });
-        if(chart) chart.destroy();
-        chart = new Chart(document.getElementById('harvestChart'), { 
-            type: 'bar', 
-            data: { 
-                labels: Object.keys(regions), 
-                datasets: [{ label: 'Souls Harvested by Region', data: Object.values(regions), backgroundColor: '#f1c40f' }] 
-            } 
-        });
-    }
-
-    window.saveVideoUrl = async () => {
-        const url = document.getElementById('adminVideoUrl').value;
-        if(!url) return alert("Please enter a valid video streaming URL.");
-        
-        await setDoc(doc(db, "config", "video"), { url: url });
-        
-        const videoSource = document.getElementById('videoSource');
-        const salvationVideo = document.getElementById('salvationVideo');
-        if (videoSource && salvationVideo) {
-            videoSource.src = url;
-            salvationVideo.load();
-        }
-        updateAdminPreview(url);
-        alert("Video stream URL updated and published successfully!");
-    };
-
-    window.deleteActiveVideo = async () => {
-        if(!confirm("Are you sure you want to delete the current active video?")) return;
-        await setDoc(doc(db, "config", "video"), { url: "" });
-        
-        const videoSource = document.getElementById('videoSource');
-        const salvationVideo = document.getElementById('salvationVideo');
-        if (videoSource && salvationVideo) {
-            videoSource.src = "";
-            salvationVideo.load();
-        }
-        document.getElementById('adminPreviewContainer').classList.add('hidden');
-        document.getElementById('currentVideoTitle').innerText = "No active video set.";
-        alert("Active video deleted.");
-    };
-
-    window.uploadVideoFile = async () => {
-        const fileInput = document.getElementById('adminVideoFile');
-        const file = fileInput.files[0];
-        if(!file) return alert("Please select a video file first.");
-
-        const cloudName = "saqv9tcx"; 
-        const uploadPreset = "dyndj6gw"; 
-
-        if(cloudName === "YOUR_CLOUDINARY_CLOUD_NAME") {
-            return alert("Please update the script with your Cloudinary Cloud Name and Unsigned Preset Name first!");
-        }
-
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("upload_preset", uploadPreset);
-
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, true);
-
-        xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) {
-                const progress = (e.loaded / e.total) * 100;
-                document.getElementById('uploadBar').style.width = progress + "%";
-                document.getElementById('uploadStatus').innerText = `Uploading: ${Math.round(progress)}%`;
-            }
-        };
-
-        xhr.onload = async () => {
-            if (xhr.status === 200) {
-                const response = JSON.parse(xhr.responseText);
-                const downloadURL = response.secure_url;
-
-                await setDoc(doc(db, "config", "video"), { url: downloadURL });
-
-                const videoSource = document.getElementById('videoSource');
-                const salvationVideo = document.getElementById('salvationVideo');
-                if (videoSource && salvationVideo) {
-                    videoSource.src = downloadURL;
-                    salvationVideo.load();
-                }
-
-                updateAdminPreview(downloadURL);
-                document.getElementById('uploadStatus').innerText = "Video successfully uploaded and published globally!";
-            } else {
-                alert("Upload failed. Check your Cloudinary Cloud Name and Preset.");
-            }
-        };
-
-        xhr.send(formData);
-    };
-
-    function listenPastors() { 
-        onSnapshot(collection(db, "pastors"), (s) => { 
-            const b = document.getElementById('pTableBody'); 
-            b.innerHTML = ""; 
-            s.forEach(d => { 
-                const p = d.data(); 
-                b.innerHTML += `<tr><td>${p.name}</td><td>${p.region}</td><td><button onclick="deletePastor('${d.id}')">X</button></td></tr>`; 
-            }); 
-        }); 
-    }
-
-    window.savePastor = async () => { 
-        await addDoc(collection(db, "pastors"), { 
-            name: document.getElementById('pName').value, 
-            region: document.getElementById('pReg').value, 
-            email: document.getElementById('aEmail').value.toLowerCase(), 
-            phone: document.getElementById('pPhone').value 
-        }); 
-    };
-
-    window.deletePastor = async (id) => { if(confirm("Remove Pastor access?")) await deleteDoc(doc(db, "pastors", id)); };
-    
-    window.bulkWhatsAppFollowUp = () => { 
-        harvestData.forEach((s, i) => setTimeout(() => window.open(`https://wa.me/${s.phone.replace(/\D/g,'')}?text=Shalom%20${s.name},%20we%20are%20praying%20with%20you!`, '_blank'), i * 2000)); 
-    };
-
-    window.resetToHome = () => location.reload();
+/* ================= Boot ================= */
+addEventListener('DOMContentLoaded',()=>{});
+initMap();
+if(navigator.geolocation&&navigator.permissions){navigator.permissions.query({name:'geolocation'}).then(p=>{if(p.state==='granted')autoDetectLocation()}).catch(()=>{})}
 </script>
 </body>
 </html>
